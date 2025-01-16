@@ -66,20 +66,34 @@ IFACEMETHODIMP BluetoothCredentialProvider::QueryInterface(REFIID riid, void** p
 // SetUsageScenario: Called to specify the current usage scenario (e.g., logon, unlock)
 IFACEMETHODIMP BluetoothCredentialProvider::SetUsageScenario(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, DWORD dwFlags)
 {
-    _cpus = cpus; // Store the usage scenario
+    // Store the usage scenario
+    _cpus = cpus;
 
-    // Create a new Credential instance
+    // Only handle supported scenarios
+    if (cpus == CPUS_LOGON || cpus == CPUS_UNLOCK_WORKSTATION)
+    {
+        // Create a new credential instance if it doesn't already exist
+        if (!_credential)
+        {
+            _credential = new BluetoothCredentialProviderCredential(); // Create BLE credential
+            if (!_credential)
+            {
+                return E_OUTOFMEMORY; // Handle memory allocation failure
+            }
+        }
+        return S_OK; // Successfully initialized for the usage scenario
+    }
+
+    // If the usage scenario is unsupported, release existing credential and return error
     if (_credential)
     {
-        _credential->Release(); // Release the previous credential if it exists
+        _credential->Release();
+        _credential = nullptr;
     }
-    _credential = new BluetoothCredentialProviderCredential(); // Create a new BLE credential
-    if (!_credential) // Check for allocation failure
-    {
-        return E_OUTOFMEMORY; // Return an out-of-memory error
-    }
-    return S_OK; // Indicate success
+
+    return E_NOTIMPL; // Indicate that the usage scenario is not implemented
 }
+
 
 // SetSerialization: Optionally pre-fill credentials (not used in this example)
 IFACEMETHODIMP BluetoothCredentialProvider::SetSerialization(const CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION* pcpcs)
@@ -136,14 +150,19 @@ IFACEMETHODIMP BluetoothCredentialProvider::GetFieldDescriptorAt(DWORD dwIndex, 
     // Provide a static field descriptor
     static CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR descriptor = { 0 };
     descriptor.dwFieldID = 0; // Field ID
-    descriptor.cpft = CPFT_SMALL_TEXT; // Field type (small text label)
-    const wchar_t* text = L"Proximity Detection";
-    PWSTR writableText;
-    SHStrDupW(text, &writableText); // Creates a writable copy
+    descriptor.cpft = CPFT_TILE_IMAGE; // Field type (small text label)
+
+    // Assign a label to the descriptor
+    HRESULT hr = SHStrDupW(L"Proximity Detection", &descriptor.pszLabel); // Correctly assign the label
+    if (FAILED(hr)) // Check if string duplication succeeded
+    {
+        return hr; // Return the error
+    }
 
     *ppcpfd = &descriptor; // Return the descriptor
     return S_OK; // Indicate success
 }
+
 
 // GetCredentialCount: Return the number of credentials available
 IFACEMETHODIMP BluetoothCredentialProvider::GetCredentialCount(DWORD* pdwCount, DWORD* pdwDefault, BOOL* pbAutoLogonWithDefault)
