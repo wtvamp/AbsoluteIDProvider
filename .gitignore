@@ -69,4 +69,7 @@ Makefile
 # Windows specific files
 Thumbs.db
 Desktop.ini
+.vs/# Visual Studio specific files
+.vscode/
 .vs/
+*.code-workspace
