@@ -1,0 +1,72 @@
+# Visual Studio specific files
+.vscode/
+.vs/
+*.code-workspace
+
+# Build directories
+build/
+Debug/
+Release/
+x64/
+x86/
+
+# Compiled object files
+*.obj
+*.o
+*.lo
+*.la
+*.al
+*.libs
+*.dll
+*.so
+*.dylib
+*.exe
+*.out
+*.app
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Static Libraries
+*.lib
+*.a
+
+# Dynamic Libraries
+*.dll
+*.so
+*.dylib
+
+# Debug files
+*.ncb
+*.sdf
+*.opensdf
+*.vcxproj.user
+*.vcxproj.filters
+*.ipch
+*.pdb
+*.idb
+
+# Other files
+*.log
+*.cache
+*.pyc
+*.pyo
+*.pyd
+*.suo
+*.user
+*.tlog
+*.lastbuildstate
+*.sln.docstates
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+
+# Windows specific files
+Thumbs.db
+Desktop.ini
+.vs/
