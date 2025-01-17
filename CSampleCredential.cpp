@@ -743,7 +743,7 @@ bool CSampleCredential::CheckReactNativeAppLoginStatus()
 {
     std::wcout << L"Querying React Native app for login status..." << std::endl;
 
-    // Example: Simulate HTTP request
+    // TODO: Simulate HTTP request
     // Replace this with actual HTTP client logic using WinHTTP or a library like cpprestsdk
     bool isLoggedIn = true; // Simulated API response
     if (isLoggedIn)
