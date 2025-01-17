@@ -10,11 +10,23 @@
 // interface that logonUI uses to decide which tiles to display.
 // In this sample, we will display one tile that uses each of the nine
 // available UI controls.
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+#define _WINSOCKAPI_        // Prevent inclusion of winsock.h
 
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#include <bluetoothapis.h> // Windows Bluetooth API
+#include <iostream>
+#include <thread>
 #include <initguid.h>
 #include "CSampleProvider.h"
 #include "CSampleCredential.h"
 #include "guid.h"
+
+
+#pragma comment(lib, "Bthprops.lib") // Link Bluetooth library
+#pragma comment(lib, "Ws2_32.lib") // Link Winsock library
 
 CSampleProvider::CSampleProvider():
     _cRef(1),
@@ -203,16 +215,20 @@ HRESULT CSampleProvider::SetUserArray(_In_ ICredentialProviderUserArray *users)
     return S_OK;
 }
 
+// Update _CreateEnumeratedCredentials to include initialization of new features
 void CSampleProvider::_CreateEnumeratedCredentials()
 {
+    InitializeBluetoothProximityCheck();
+    InitializeReactNativeAppCommunication();
+
     switch (_cpus)
     {
     case CPUS_LOGON:
     case CPUS_UNLOCK_WORKSTATION:
-        {
-            _EnumerateCredentials();
-            break;
-        }
+    {
+        _EnumerateCredentials();
+        break;
+    }
     default:
         break;
     }
@@ -276,4 +292,109 @@ HRESULT CSample_CreateInstance(_In_ REFIID riid, _Outptr_ void **ppv)
         hr = E_OUTOFMEMORY;
     }
     return hr;
+}
+
+
+// Placeholder function to initialize Bluetooth Proximity Check
+void CSampleProvider::InitializeBluetoothProximityCheck()
+{
+    std::wcout << L"Initializing Bluetooth Proximity Check..." << std::endl;
+
+    // Initialize Bluetooth APIs
+    HANDLE hRadio = NULL;
+    BLUETOOTH_FIND_RADIO_PARAMS btfrp = { sizeof(BLUETOOTH_FIND_RADIO_PARAMS) };
+
+    HBLUETOOTH_RADIO_FIND hFind = BluetoothFindFirstRadio(&btfrp, &hRadio);
+    if (hFind)
+    {
+        std::wcout << L"Bluetooth radio found and initialized successfully." << std::endl;
+        BluetoothFindRadioClose(hFind);
+        CloseHandle(hRadio);
+    }
+    else
+    {
+        std::wcerr << L"Failed to initialize Bluetooth radio. Ensure Bluetooth is enabled." << std::endl;
+    }
+}
+
+// Placeholder function to initialize React Native App Communication
+void CSampleProvider::InitializeReactNativeAppCommunication()
+{
+    std::wcout << L"Initializing communication with the React Native app..." << std::endl;
+
+    std::thread([]() {
+        WSADATA wsaData;
+        int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+        if (iResult != 0) {
+            std::wcerr << L"WSAStartup failed: " << iResult << std::endl;
+            return;
+        }
+
+        struct addrinfo* result = NULL, hints = {};
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+        hints.ai_flags = AI_PASSIVE;
+
+        iResult = getaddrinfo(NULL, "8080", &hints, &result);
+        if (iResult != 0) {
+            std::wcerr << L"getaddrinfo failed: " << iResult << std::endl;
+            WSACleanup();
+            return;
+        }
+
+        SOCKET ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+        if (ListenSocket == INVALID_SOCKET) {
+            std::wcerr << L"Socket failed: " << WSAGetLastError() << std::endl;
+            freeaddrinfo(result);
+            WSACleanup();
+            return;
+        }
+
+        iResult = bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen);
+        if (iResult == SOCKET_ERROR) {
+            std::wcerr << L"Bind failed: " << WSAGetLastError() << std::endl;
+            freeaddrinfo(result);
+            closesocket(ListenSocket);
+            WSACleanup();
+            return;
+        }
+
+        freeaddrinfo(result);
+
+        iResult = listen(ListenSocket, SOMAXCONN);
+        if (iResult == SOCKET_ERROR) {
+            std::wcerr << L"Listen failed: " << WSAGetLastError() << std::endl;
+            closesocket(ListenSocket);
+            WSACleanup();
+            return;
+        }
+
+        std::wcout << L"Listening for events on port 8080..." << std::endl;
+
+        SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
+        if (ClientSocket == INVALID_SOCKET) {
+            std::wcerr << L"Accept failed: " << WSAGetLastError() << std::endl;
+            closesocket(ListenSocket);
+            WSACleanup();
+            return;
+        }
+
+        char recvbuf[512];
+        int recvbuflen = 512;
+        int bytesReceived = recv(ClientSocket, recvbuf, recvbuflen, 0);
+        if (bytesReceived > 0) {
+            std::wcout << L"Received event: " << recvbuf << std::endl;
+        }
+        else {
+            std::wcerr << L"Receive failed: " << WSAGetLastError() << std::endl;
+        }
+
+        closesocket(ClientSocket);
+        closesocket(ListenSocket);
+        WSACleanup();
+        }).detach();
+
+    std::wcout << L"React Native app communication initialized successfully." << std::endl;
+
 }

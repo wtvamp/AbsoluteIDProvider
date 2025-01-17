@@ -15,6 +15,10 @@
 #include <unknwn.h>
 #include "CSampleCredential.h"
 #include "guid.h"
+#include <iostream>
+#include <bluetoothapis.h> // Windows Bluetooth API
+
+#pragma comment(lib, "Bthprops.lib") // Link Bluetooth library
 
 CSampleCredential::CSampleCredential():
     _cRef(1),
@@ -447,46 +451,23 @@ HRESULT CSampleCredential::SetComboBoxSelectedValue(DWORD dwFieldID, DWORD dwSel
     return hr;
 }
 
-// Called when the user clicks a command link.
+// Updated CommandLinkClicked
 HRESULT CSampleCredential::CommandLinkClicked(DWORD dwFieldID)
 {
     HRESULT hr = S_OK;
 
-    CREDENTIAL_PROVIDER_FIELD_STATE cpfsShow = CPFS_HIDDEN;
-
-    // Validate parameter.
     if (dwFieldID < ARRAYSIZE(_rgCredProvFieldDescriptors) &&
         (CPFT_COMMAND_LINK == _rgCredProvFieldDescriptors[dwFieldID].cpft))
     {
-        HWND hwndOwner = nullptr;
-        switch (dwFieldID)
+        if (CheckBluetoothProximity() && CheckReactNativeAppLoginStatus() && CheckAppButtonClicked())
         {
-        case SFI_LAUNCHWINDOW_LINK:
-            if (_pCredProvCredentialEvents)
-            {
-                _pCredProvCredentialEvents->OnCreatingWindow(&hwndOwner);
-            }
-
-            // Pop a messagebox indicating the click.
-            ::MessageBox(hwndOwner, L"Command link clicked", L"Click!", 0);
-            break;
-        case SFI_HIDECONTROLS_LINK:
-            _pCredProvCredentialEvents->BeginFieldUpdates();
-            cpfsShow = _fShowControls ? CPFS_DISPLAY_IN_SELECTED_TILE : CPFS_HIDDEN;
-            _pCredProvCredentialEvents->SetFieldState(nullptr, SFI_FULLNAME_TEXT, cpfsShow);
-            _pCredProvCredentialEvents->SetFieldState(nullptr, SFI_DISPLAYNAME_TEXT, cpfsShow);
-            _pCredProvCredentialEvents->SetFieldState(nullptr, SFI_LOGONSTATUS_TEXT, cpfsShow);
-            _pCredProvCredentialEvents->SetFieldState(nullptr, SFI_CHECKBOX, cpfsShow);
-            _pCredProvCredentialEvents->SetFieldState(nullptr, SFI_EDIT_TEXT, cpfsShow);
-            _pCredProvCredentialEvents->SetFieldState(nullptr, SFI_COMBOBOX, cpfsShow);
-            _pCredProvCredentialEvents->SetFieldString(nullptr, SFI_HIDECONTROLS_LINK, _fShowControls? L"Hide additional controls" : L"Show additional controls");
-            _pCredProvCredentialEvents->EndFieldUpdates();
-            _fShowControls = !_fShowControls;
-            break;
-        default:
-            hr = E_INVALIDARG;
+            ::MessageBox(nullptr, L"Authentication Checks Passed!", L"Success", MB_OK);
         }
-
+        else
+        {
+            ::MessageBox(nullptr, L"Authentication Failed: Ensure Bluetooth, App Login, and Button Click!", L"Error", MB_OK);
+            hr = E_ACCESSDENIED;
+        }
     }
     else
     {
@@ -697,4 +678,104 @@ HRESULT CSampleCredential::GetFieldOptions(DWORD dwFieldID,
     }
 
     return S_OK;
+}
+
+bool CSampleCredential::CheckBluetoothProximity()
+{
+    std::wcout << L"Scanning for nearby Bluetooth devices..." << std::endl;
+
+    HANDLE hRadio = NULL;
+    BLUETOOTH_FIND_RADIO_PARAMS btfrp = { sizeof(BLUETOOTH_FIND_RADIO_PARAMS) };
+    BLUETOOTH_DEVICE_SEARCH_PARAMS btdsp = { sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS) };
+    BLUETOOTH_DEVICE_INFO btdi = { sizeof(BLUETOOTH_DEVICE_INFO) };
+
+    HBLUETOOTH_RADIO_FIND hFindRadio = BluetoothFindFirstRadio(&btfrp, &hRadio);
+    if (!hFindRadio)
+    {
+        std::wcerr << L"No Bluetooth radios found." << std::endl;
+        return false;
+    }
+
+    bool deviceFound = false;
+
+    do
+    {
+        btdsp.hRadio = hRadio;
+        btdsp.fReturnAuthenticated = TRUE;
+        btdsp.fReturnRemembered = TRUE;
+        btdsp.fReturnUnknown = TRUE;
+        btdsp.fReturnConnected = TRUE;
+        btdsp.cTimeoutMultiplier = 1; // 1.28 seconds
+
+        HBLUETOOTH_DEVICE_FIND hFindDevice = BluetoothFindFirstDevice(&btdsp, &btdi);
+        if (hFindDevice)
+        {
+            do
+            {
+                std::wcout << L"Found Bluetooth device: " << btdi.szName << std::endl;
+                if (wcscmp(btdi.szName, L"MyTargetDevice") == 0)
+                {
+                    std::wcout << L"Target device found!" << std::endl;
+                    deviceFound = true;
+                    break;
+                }
+            } while (BluetoothFindNextDevice(hFindDevice, &btdi));
+
+            BluetoothFindDeviceClose(hFindDevice);
+        }
+
+        CloseHandle(hRadio);
+        if (deviceFound)
+            break;
+
+    } while (BluetoothFindNextRadio(hFindRadio, &hRadio));
+
+    BluetoothFindRadioClose(hFindRadio);
+
+    if (!deviceFound)
+        std::wcout << L"Target Bluetooth device not found!" << std::endl;
+
+    return deviceFound;
+}
+
+// React Native App Login Status Check
+bool CSampleCredential::CheckReactNativeAppLoginStatus()
+{
+    std::wcout << L"Querying React Native app for login status..." << std::endl;
+
+    // Example: Simulate HTTP request
+    // Replace this with actual HTTP client logic using WinHTTP or a library like cpprestsdk
+    bool isLoggedIn = true; // Simulated API response
+    if (isLoggedIn)
+    {
+        std::wcout << L"User is logged into the React Native app." << std::endl;
+        return true;
+    }
+    else
+    {
+        std::wcout << L"User is not logged into the React Native app." << std::endl;
+        return false;
+    }
+}
+
+// Button Click Detection Implementation
+bool CSampleCredential::CheckAppButtonClicked()
+{
+    // TODO: Replace this placeholder logic with actual communication with the app to detect button click
+    // Simulating detection of a button click event
+    std::wcout << L"Checking for button click event in React Native app..." << std::endl;
+
+    // Simulate button click detected
+    bool buttonClicked = true; // Mocked for simplicity
+
+    if (buttonClicked)
+    {
+        std::wcout << L"Button click detected in React Native app." << std::endl;
+        return true;
+    }
+    else
+    {
+        std::wcout << L"Button click not detected in React Native app." << std::endl;
+        return false;
+    }
 }

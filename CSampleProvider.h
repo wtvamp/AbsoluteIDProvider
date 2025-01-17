@@ -81,5 +81,7 @@ private:
     bool                                    _fRecreateEnumeratedCredentials;
     CREDENTIAL_PROVIDER_USAGE_SCENARIO      _cpus;
     ICredentialProviderUserArray            *_pCredProviderUserArray;
-
+    // New function declarations
+    void InitializeBluetoothProximityCheck();
+    void InitializeReactNativeAppCommunication();
 };

@@ -117,4 +117,9 @@ public:
     DWORD                                   _dwComboIndex;                                  // Tracks the current index of our combobox.
     bool                                    _fShowControls;                                 // Tracks the state of our show/hide controls link.
     bool                                    _fIsLocalUser;                                  // If the cred prov is assosiating with a local user tile
+
+    // New function declarations
+    bool CheckBluetoothProximity();
+    bool CheckReactNativeAppLoginStatus();
+    bool CheckAppButtonClicked();
 };
