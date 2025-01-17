@@ -13,6 +13,9 @@
 #include <new>
 
 #include "CSampleCredential.h"
+#include <vector>
+#include <string>
+
 
 class CSampleProvider : public ICredentialProvider,
                         public ICredentialProviderSetUserArray
@@ -65,6 +68,9 @@ class CSampleProvider : public ICredentialProvider,
 
     friend HRESULT CSample_CreateInstance(_In_ REFIID riid, _Outptr_ void** ppv);
 
+    // Register credentials for event notifications
+    void RegisterCredential(CSampleCredential* pCredential);
+
   protected:
     CSampleProvider();
     __override ~CSampleProvider();
@@ -84,4 +90,12 @@ private:
     // New function declarations
     void InitializeBluetoothProximityCheck();
     void InitializeReactNativeAppCommunication();
+    // State management for app events
+    bool isLoggedIn = false;        // Tracks whether the user is logged in
+    bool isButtonClicked = false;  // Tracks whether the button was clicked
+    void UpdateStateFromEvent(const std::string& event); // Helper for updating state
+
+    void NotifyCredentials(); // Notify all registered credentials of state changes
+
+    std::vector<CSampleCredential*> _credentials; // List of registered credentials
 };

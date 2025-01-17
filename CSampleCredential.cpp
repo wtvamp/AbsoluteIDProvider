@@ -14,6 +14,7 @@
 #endif
 #include <unknwn.h>
 #include "CSampleCredential.h"
+#include "CSampleProvider.h"
 #include "guid.h"
 #include <iostream>
 #include <bluetoothapis.h> // Windows Bluetooth API
@@ -451,32 +452,6 @@ HRESULT CSampleCredential::SetComboBoxSelectedValue(DWORD dwFieldID, DWORD dwSel
     return hr;
 }
 
-// Updated CommandLinkClicked
-HRESULT CSampleCredential::CommandLinkClicked(DWORD dwFieldID)
-{
-    HRESULT hr = S_OK;
-
-    if (dwFieldID < ARRAYSIZE(_rgCredProvFieldDescriptors) &&
-        (CPFT_COMMAND_LINK == _rgCredProvFieldDescriptors[dwFieldID].cpft))
-    {
-        if (CheckBluetoothProximity() && CheckReactNativeAppLoginStatus() && CheckAppButtonClicked())
-        {
-            ::MessageBox(nullptr, L"Authentication Checks Passed!", L"Success", MB_OK);
-        }
-        else
-        {
-            ::MessageBox(nullptr, L"Authentication Failed: Ensure Bluetooth, App Login, and Button Click!", L"Error", MB_OK);
-            hr = E_ACCESSDENIED;
-        }
-    }
-    else
-    {
-        hr = E_INVALIDARG;
-    }
-
-    return hr;
-}
-
 // Collect the username and password into a serialized credential for the correct usage scenario
 // (logon/unlock is what's demonstrated in this sample).  LogonUI then passes these credentials
 // back to the system to log on.
@@ -738,44 +713,35 @@ bool CSampleCredential::CheckBluetoothProximity()
     return deviceFound;
 }
 
-// React Native App Login Status Check
-bool CSampleCredential::CheckReactNativeAppLoginStatus()
+void CSampleCredential::OnProviderStateChange(bool loggedIn, bool buttonClicked)
 {
-    std::wcout << L"Querying React Native app for login status..." << std::endl;
-
-    // TODO: Simulate HTTP request
-    // Replace this with actual HTTP client logic using WinHTTP or a library like cpprestsdk
-    bool isLoggedIn = true; // Simulated API response
-    if (isLoggedIn)
-    {
-        std::wcout << L"User is logged into the React Native app." << std::endl;
-        return true;
-    }
-    else
-    {
-        std::wcout << L"User is not logged into the React Native app." << std::endl;
-        return false;
-    }
+    _loggedIn = loggedIn;
+    _buttonClicked = buttonClicked;
 }
 
-// Button Click Detection Implementation
-bool CSampleCredential::CheckAppButtonClicked()
+HRESULT CSampleCredential::CommandLinkClicked(DWORD dwFieldID)
 {
-    // TODO: Replace this placeholder logic with actual communication with the app to detect button click
-    // Simulating detection of a button click event
-    std::wcout << L"Checking for button click event in React Native app..." << std::endl;
+    HRESULT hr = S_OK;
 
-    // Simulate button click detected
-    bool buttonClicked = true; // Mocked for simplicity
-
-    if (buttonClicked)
+    // Ensure the field ID is valid and corresponds to a command link
+    if (dwFieldID < ARRAYSIZE(_rgCredProvFieldDescriptors) &&
+        (CPFT_COMMAND_LINK == _rgCredProvFieldDescriptors[dwFieldID].cpft))
     {
-        std::wcout << L"Button click detected in React Native app." << std::endl;
-        return true;
+        // Check Bluetooth proximity, login status, and button click status
+        if (CheckBluetoothProximity() && _loggedIn && _buttonClicked)
+        {
+            ::MessageBox(nullptr, L"Authentication Checks Passed!", L"Success", MB_OK);
+        }
+        else
+        {
+            ::MessageBox(nullptr, L"Authentication Failed: Ensure Bluetooth, Login, and Button Click!", L"Error", MB_OK);
+            hr = E_ACCESSDENIED;
+        }
     }
     else
     {
-        std::wcout << L"Button click not detected in React Native app." << std::endl;
-        return false;
+        hr = E_INVALIDARG;
     }
+
+    return hr;
 }

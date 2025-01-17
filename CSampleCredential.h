@@ -99,6 +99,7 @@ public:
                        _In_ CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR const *rgcpfd,
                        _In_ FIELD_STATE_PAIR const *rgfsp,
                        _In_ ICredentialProviderUser *pcpUser);
+    void OnProviderStateChange(bool loggedIn, bool buttonClicked);
     CSampleCredential();
 
   private:
@@ -118,8 +119,9 @@ public:
     bool                                    _fShowControls;                                 // Tracks the state of our show/hide controls link.
     bool                                    _fIsLocalUser;                                  // If the cred prov is assosiating with a local user tile
 
+    bool _loggedIn = false;
+    bool _buttonClicked = false;
+
     // New function declarations
     bool CheckBluetoothProximity();
-    bool CheckReactNativeAppLoginStatus();
-    bool CheckAppButtonClicked();
 };

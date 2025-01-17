@@ -21,7 +21,6 @@
 #include <thread>
 #include <initguid.h>
 #include "CSampleProvider.h"
-#include "CSampleCredential.h"
 #include "guid.h"
 
 
@@ -246,34 +245,57 @@ void CSampleProvider::_ReleaseEnumeratedCredentials()
 HRESULT CSampleProvider::_EnumerateCredentials()
 {
     HRESULT hr = E_UNEXPECTED;
+
+    // Ensure the user array is available
     if (_pCredProviderUserArray != nullptr)
     {
-        DWORD dwUserCount;
-        _pCredProviderUserArray->GetCount(&dwUserCount);
-        if (dwUserCount > 0)
+        DWORD dwUserCount = 0;
+        hr = _pCredProviderUserArray->GetCount(&dwUserCount);
+
+        if (SUCCEEDED(hr) && dwUserCount > 0)
         {
-            ICredentialProviderUser *pCredUser;
-            hr = _pCredProviderUserArray->GetAt(0, &pCredUser);
-            if (SUCCEEDED(hr))
+            // Iterate over each user and create a credential
+            for (DWORD i = 0; i < dwUserCount; i++)
             {
-                _pCredential = new(std::nothrow) CSampleCredential();
-                if (_pCredential != nullptr)
+                ICredentialProviderUser* pCredUser = nullptr;
+                hr = _pCredProviderUserArray->GetAt(i, &pCredUser);
+                if (SUCCEEDED(hr) && pCredUser != nullptr)
                 {
-                    hr = _pCredential->Initialize(_cpus, s_rgCredProvFieldDescriptors, s_rgFieldStatePairs, pCredUser);
-                    if (FAILED(hr))
+                    // Create a new credential
+                    CSampleCredential* pCredential = new (std::nothrow) CSampleCredential();
+                    if (pCredential != nullptr)
                     {
-                        _pCredential->Release();
-                        _pCredential = nullptr;
+                        // Initialize the credential
+                        hr = pCredential->Initialize(_cpus, s_rgCredProvFieldDescriptors, s_rgFieldStatePairs, pCredUser);
+                        if (SUCCEEDED(hr))
+                        {
+                            // Register the credential for state notifications
+                            RegisterCredential(pCredential);
+
+                            // Store the credential (only storing the first for simplicity here)
+                            _pCredential = pCredential;
+                        }
+                        else
+                        {
+                            pCredential->Release();
+                        }
                     }
+                    else
+                    {
+                        hr = E_OUTOFMEMORY;
+                    }
+
+                    // Release the user reference
+                    pCredUser->Release();
                 }
-                else
-                {
-                    hr = E_OUTOFMEMORY;
-                }
-                pCredUser->Release();
             }
         }
+        else
+        {
+            hr = E_FAIL;
+        }
     }
+
     return hr;
 }
 
@@ -317,20 +339,24 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
     }
 }
 
-// Placeholder function to initialize React Native App Communication
 void CSampleProvider::InitializeReactNativeAppCommunication()
 {
-    std::wcout << L"Initializing communication with the React Native app..." << std::endl;
+    std::wcout << L"Starting HTTP server to listen for React Native app events..." << std::endl;
 
-    std::thread([]() {
+    std::thread([this]() {
         WSADATA wsaData;
-        int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+        int iResult;
+
+        // Initialize Winsock
+        iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
         if (iResult != 0) {
             std::wcerr << L"WSAStartup failed: " << iResult << std::endl;
             return;
         }
 
-        struct addrinfo* result = NULL, hints = {};
+        // Set up socket
+        struct addrinfo* result = NULL, hints;
+        ZeroMemory(&hints, sizeof(hints));
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
@@ -345,7 +371,7 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
 
         SOCKET ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
         if (ListenSocket == INVALID_SOCKET) {
-            std::wcerr << L"Socket failed: " << WSAGetLastError() << std::endl;
+            std::wcerr << L"Socket creation failed: " << WSAGetLastError() << std::endl;
             freeaddrinfo(result);
             WSACleanup();
             return;
@@ -370,31 +396,72 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
             return;
         }
 
-        std::wcout << L"Listening for events on port 8080..." << std::endl;
+        std::wcout << L"HTTP server listening on port 8080..." << std::endl;
 
-        SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
-        if (ClientSocket == INVALID_SOCKET) {
-            std::wcerr << L"Accept failed: " << WSAGetLastError() << std::endl;
-            closesocket(ListenSocket);
-            WSACleanup();
-            return;
+        while (true) {
+            SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
+            if (ClientSocket == INVALID_SOCKET) {
+                std::wcerr << L"Accept failed: " << WSAGetLastError() << std::endl;
+                continue;
+            }
+
+            char recvbuf[512];
+            int recvbuflen = 512;
+
+            int bytesReceived = recv(ClientSocket, recvbuf, recvbuflen, 0);
+            if (bytesReceived > 0) {
+                recvbuf[bytesReceived] = '\0';
+                std::string request(recvbuf);
+                std::cout << "Received HTTP request:\n" << request << std::endl;
+
+                // Update state based on the event
+                UpdateStateFromEvent(request);
+
+                const char* response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nEvent Received";
+                send(ClientSocket, response, (int)strlen(response), 0);
+            }
+
+            closesocket(ClientSocket);
         }
 
-        char recvbuf[512];
-        int recvbuflen = 512;
-        int bytesReceived = recv(ClientSocket, recvbuf, recvbuflen, 0);
-        if (bytesReceived > 0) {
-            std::wcout << L"Received event: " << recvbuf << std::endl;
-        }
-        else {
-            std::wcerr << L"Receive failed: " << WSAGetLastError() << std::endl;
-        }
-
-        closesocket(ClientSocket);
         closesocket(ListenSocket);
         WSACleanup();
         }).detach();
 
     std::wcout << L"React Native app communication initialized successfully." << std::endl;
+}
 
+// Helper function to update state based on events
+void CSampleProvider::UpdateStateFromEvent(const std::string& event)
+{
+    bool oldIsLoggedIn = isLoggedIn;
+    bool oldIsButtonClicked = isButtonClicked;
+
+    if (event.find("User clicked login button") != std::string::npos) {
+        isButtonClicked = true;
+    }
+    else if (event.find("User logged in") != std::string::npos) {
+        isLoggedIn = true;
+    }
+
+    // Notify credentials only if state has changed
+    if (isLoggedIn != oldIsLoggedIn || isButtonClicked != oldIsButtonClicked) {
+        NotifyCredentials();
+    }
+}
+
+void CSampleProvider::RegisterCredential(CSampleCredential* pCredential)
+{
+    _credentials.push_back(pCredential);
+}
+
+void CSampleProvider::NotifyCredentials()
+{
+    for (auto* credential : _credentials)
+    {
+        if (credential)
+        {
+            credential->OnProviderStateChange(isLoggedIn, isButtonClicked);
+        }
+    }
 }
