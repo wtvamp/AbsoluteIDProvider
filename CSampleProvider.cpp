@@ -337,6 +337,79 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
     {
         std::wcerr << L"Failed to initialize Bluetooth radio. Ensure Bluetooth is enabled." << std::endl;
     }
+
+    // Start a thread to periodically check Bluetooth proximity
+    std::thread([this]() {
+        while (true)
+        {
+            CheckBluetoothProximity();
+            std::this_thread::sleep_for(std::chrono::seconds(10)); // Check every 10 seconds
+        }
+    }).detach();
+}
+
+void CSampleProvider::CheckBluetoothProximity()
+{
+    std::wcout << L"Scanning for nearby Bluetooth devices..." << std::endl;
+
+    HANDLE hRadio = NULL;
+    BLUETOOTH_FIND_RADIO_PARAMS btfrp = { sizeof(BLUETOOTH_FIND_RADIO_PARAMS) };
+    BLUETOOTH_DEVICE_SEARCH_PARAMS btdsp = { sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS) };
+    BLUETOOTH_DEVICE_INFO btdi = { sizeof(BLUETOOTH_DEVICE_INFO) };
+
+    HBLUETOOTH_RADIO_FIND hFindRadio = BluetoothFindFirstRadio(&btfrp, &hRadio);
+    if (!hFindRadio)
+    {
+        std::wcerr << L"No Bluetooth radios found." << std::endl;
+        return;
+    }
+
+    bool deviceFound = false;
+
+    do
+    {
+        btdsp.hRadio = hRadio;
+        btdsp.fReturnAuthenticated = TRUE;
+        btdsp.fReturnRemembered = TRUE;
+        btdsp.fReturnUnknown = TRUE;
+        btdsp.fReturnConnected = TRUE;
+        btdsp.cTimeoutMultiplier = 1; // 1.28 seconds
+
+        HBLUETOOTH_DEVICE_FIND hFindDevice = BluetoothFindFirstDevice(&btdsp, &btdi);
+        if (hFindDevice)
+        {
+            do
+            {
+                std::wcout << L"Found Bluetooth device: " << btdi.szName << std::endl;
+                if (wcscmp(btdi.szName, L"MyTargetDevice") == 0)
+                {
+                    std::wcout << L"Target device found!" << std::endl;
+                    deviceFound = true;
+                    break;
+                }
+            } while (BluetoothFindNextDevice(hFindDevice, &btdi));
+
+            BluetoothFindDeviceClose(hFindDevice);
+        }
+
+        CloseHandle(hRadio);
+        if (deviceFound)
+            break;
+
+    } while (BluetoothFindNextRadio(hFindRadio, &hRadio));
+
+    BluetoothFindRadioClose(hFindRadio);
+
+    if (deviceFound)
+    {
+        isLoggedIn = true;
+        NotifyCredentials();
+    }
+    else
+    {
+        isLoggedIn = false;
+        NotifyCredentials();
+    }
 }
 
 void CSampleProvider::InitializeReactNativeAppCommunication()
@@ -435,17 +508,13 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
 void CSampleProvider::UpdateStateFromEvent(const std::string& event)
 {
     bool oldIsLoggedIn = isLoggedIn;
-    bool oldIsButtonClicked = isButtonClicked;
 
-    if (event.find("User clicked login button") != std::string::npos) {
-        isButtonClicked = true;
-    }
-    else if (event.find("User logged in") != std::string::npos) {
+    if (event.find("User logged in") != std::string::npos) {
         isLoggedIn = true;
     }
 
     // Notify credentials only if state has changed
-    if (isLoggedIn != oldIsLoggedIn || isButtonClicked != oldIsButtonClicked) {
+    if (isLoggedIn != oldIsLoggedIn) {
         NotifyCredentials();
     }
 }
@@ -461,7 +530,7 @@ void CSampleProvider::NotifyCredentials()
     {
         if (credential)
         {
-            credential->OnProviderStateChange(isLoggedIn, isButtonClicked);
+            credential->OnProviderStateChange(isLoggedIn);
         }
     }
 }

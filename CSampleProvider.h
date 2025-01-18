@@ -75,27 +75,26 @@ class CSampleProvider : public ICredentialProvider,
     CSampleProvider();
     __override ~CSampleProvider();
 
-  private:
+private:
     void _ReleaseEnumeratedCredentials();
     void _CreateEnumeratedCredentials();
     HRESULT _EnumerateEmpty();
     HRESULT _EnumerateCredentials();
     HRESULT _EnumerateEmptyTileCredential();
-private:
+
+    void InitializeBluetoothProximityCheck();
+    void InitializeReactNativeAppCommunication();
+    void UpdateStateFromEvent(const std::string& event); // Helper for updating state
+    void NotifyCredentials(); // Notify all registered credentials of state changes
+    void CheckBluetoothProximity(); // Check for nearby Bluetooth devices
+
     long                                    _cRef;            // Used for reference counting.
     CSampleCredential                       *_pCredential;    // SampleV2Credential
     bool                                    _fRecreateEnumeratedCredentials;
     CREDENTIAL_PROVIDER_USAGE_SCENARIO      _cpus;
     ICredentialProviderUserArray            *_pCredProviderUserArray;
-    // New function declarations
-    void InitializeBluetoothProximityCheck();
-    void InitializeReactNativeAppCommunication();
-    // State management for app events
-    bool isLoggedIn = false;        // Tracks whether the user is logged in
-    bool isButtonClicked = false;  // Tracks whether the button was clicked
-    void UpdateStateFromEvent(const std::string& event); // Helper for updating state
 
-    void NotifyCredentials(); // Notify all registered credentials of state changes
+    bool isLoggedIn = false;        // Tracks whether the user is logged in
 
     std::vector<CSampleCredential*> _credentials; // List of registered credentials
 };
