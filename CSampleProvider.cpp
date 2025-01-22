@@ -502,21 +502,40 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
                 continue;
             }
 
+            std::string request;
             char recvbuf[512];
             int recvbuflen = 512;
+            int bytesReceived;
 
-            int bytesReceived = recv(ClientSocket, recvbuf, recvbuflen, 0);
-            if (bytesReceived > 0) {
-                recvbuf[bytesReceived] = '\0';
-                std::string request(recvbuf);
-                OutputDebugStringA(("Received HTTP request:\n" + request + "\n").c_str());
+            // Receive the request headers
+            // test by sending this in PS:  Invoke-WebRequest -Uri http://192.168.0.253:32808 -Method Post -Body "User logged in"
+            while ((bytesReceived = recv(ClientSocket, recvbuf, recvbuflen, 0)) > 0) {
+                request.append(recvbuf, bytesReceived);
+                if (request.find("\r\n\r\n") != std::string::npos) {
+                    break;
+                }
+            }
+
+            // Check if the request contains a Content-Length header
+            size_t contentLengthPos = request.find("Content-Length: ");
+            if (contentLengthPos != std::string::npos) {
+                size_t contentLengthEnd = request.find("\r\n", contentLengthPos);
+                int contentLength = std::stoi(request.substr(contentLengthPos + 16, contentLengthEnd - contentLengthPos - 16));
+
+                // Receive the request body
+                std::string body;
+                while (body.size() < contentLength && (bytesReceived = recv(ClientSocket, recvbuf, recvbuflen, 0)) > 0) {
+                    body.append(recvbuf, bytesReceived);
+                }
+
+                OutputDebugStringA(("Received HTTP request body:\n" + body + "\n").c_str());
 
                 // Update state based on the event
-                UpdateStateFromEvent(request);
-
-                const char* response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nEvent Received";
-                send(ClientSocket, response, (int)strlen(response), 0);
+                UpdateStateFromEvent(body);
             }
+
+            const char* response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nEvent Received";
+            send(ClientSocket, response, (int)strlen(response), 0);
 
             closesocket(ClientSocket);
         }
@@ -538,7 +557,7 @@ void CSampleProvider::UpdateStateFromEvent(const std::string& event)
     }
 
     // Notify credentials only if state has changed
-    if (isBluetoothDeviceInProximity && isLoggedIn != oldIsLoggedIn) {
+    if (isBluetoothDeviceInProximity && isLoggedIn) {
         NotifyCredentials();
     }
 }
