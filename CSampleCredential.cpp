@@ -393,7 +393,7 @@ HRESULT CSampleCredential::GetSerialization(_Out_ CREDENTIAL_PROVIDER_GET_SERIAL
             // Declare a KERB_INTERACTIVE_UNLOCK_LOGON structure to store the logon information.
             KERB_INTERACTIVE_UNLOCK_LOGON kiul;
             // Initialize the logon structure with the domain, username, and usage scenario.
-            hr = KerbInteractiveUnlockLogonInit(pszDomain, pszUsername, L"test123", _cpus, &kiul);
+            hr = KerbInteractiveUnlockLogonInit(pszDomain, pszUsername, L"Awe$ome42", _cpus, &kiul);
             if (SUCCEEDED(hr))
             {
                 // Pack the logon structure into the credential serialization structure.
@@ -424,7 +424,7 @@ HRESULT CSampleCredential::GetSerialization(_Out_ CREDENTIAL_PROVIDER_GET_SERIAL
         DWORD dwAuthFlags = CRED_PACK_PROTECTED_CREDENTIALS | CRED_PACK_ID_PROVIDER_CREDENTIALS;
 
         // Get the size of the authentication buffer to allocate.
-        if (!CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, L"test123", nullptr, &pcpcs->cbSerialization) &&
+        if (!CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, L"Awe$ome42", nullptr, &pcpcs->cbSerialization) &&
             (GetLastError() == ERROR_INSUFFICIENT_BUFFER))
         {
             // Allocate memory for the authentication buffer.
@@ -435,7 +435,7 @@ HRESULT CSampleCredential::GetSerialization(_Out_ CREDENTIAL_PROVIDER_GET_SERIAL
                 hr = S_OK;
 
                 // Retrieve the authentication buffer.
-                if (CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, L"test123", pcpcs->rgbSerialization, &pcpcs->cbSerialization))
+                if (CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, L"Awe$ome42", pcpcs->rgbSerialization, &pcpcs->cbSerialization))
                 {
                     // Retrieve the authentication package.
                     ULONG ulAuthPackage;

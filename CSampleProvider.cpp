@@ -31,7 +31,8 @@ CSampleProvider::CSampleProvider():
     _cRef(1),
     _pCredential(nullptr),
     _pCredProviderUserArray(nullptr),
-	isLoggedIn(false)
+	isLoggedIn(false),
+	isBluetoothDeviceInProximity(false)
 {
     DllAddRef();
 }
@@ -337,6 +338,7 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
     else
     {
         std::wcerr << L"Failed to initialize Bluetooth radio. Ensure Bluetooth is enabled." << std::endl;
+        return;
     }
 
     // Start a thread to periodically check Bluetooth proximity
@@ -351,7 +353,7 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
 
 void CSampleProvider::CheckBluetoothProximity()
 {
-    std::wcout << L"Scanning for nearby Bluetooth devices..." << std::endl;
+	OutputDebugStringW(L"Scanning for nearby Bluetooth devices...\n");
 
     HANDLE hRadio = NULL;
     BLUETOOTH_FIND_RADIO_PARAMS btfrp = { sizeof(BLUETOOTH_FIND_RADIO_PARAMS) };
@@ -361,7 +363,7 @@ void CSampleProvider::CheckBluetoothProximity()
     HBLUETOOTH_RADIO_FIND hFindRadio = BluetoothFindFirstRadio(&btfrp, &hRadio);
     if (!hFindRadio)
     {
-        std::wcerr << L"No Bluetooth radios found." << std::endl;
+		OutputDebugStringW(L"No Bluetooth radios found.\n");
         return;
     }
 
@@ -382,10 +384,10 @@ void CSampleProvider::CheckBluetoothProximity()
         {
             do
             {
-                std::wcout << L"Found Bluetooth device: " << btdi.szName << std::endl;
+                OutputDebugStringW((std::wstring(L"Found Bluetooth device: ") + btdi.szName).c_str());
                 if (wcscmp(btdi.szName, L"Warren Thompson’s iPhone") == 0)
                 {
-                    std::wcout << L"Target device found!" << std::endl;
+                    OutputDebugStringW(L"Target device found!\n");
                     deviceFound = true;
                     break;
                 }
@@ -404,19 +406,28 @@ void CSampleProvider::CheckBluetoothProximity()
 
     if (deviceFound)
     {
-        isLoggedIn = true;
-        NotifyCredentials();
+		isBluetoothDeviceInProximity = true;
     }
     else
     {
-        isLoggedIn = false;
-        NotifyCredentials();
+		isBluetoothDeviceInProximity = false;
     }
 }
 
+void LogWSAError(const wchar_t* msg)
+{
+    wchar_t* s = nullptr;
+    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr, WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&s, 0, nullptr);
+    std::wstring fullMsg = std::wstring(msg) + L": " + s;
+    OutputDebugStringW(fullMsg.c_str());
+    LocalFree(s);
+}
+
+
 void CSampleProvider::InitializeReactNativeAppCommunication()
 {
-    std::wcout << L"Starting HTTP server to listen for React Native app events..." << std::endl;
+    OutputDebugStringW(L"Starting HTTP server to listen for React Native app events...\n");
 
     std::thread([this]() {
         WSADATA wsaData;
@@ -425,7 +436,7 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
         // Initialize Winsock
         iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
         if (iResult != 0) {
-            std::wcerr << L"WSAStartup failed: " << iResult << std::endl;
+            LogWSAError(L"WSAStartup failed");
             return;
         }
 
@@ -437,24 +448,35 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
         hints.ai_protocol = IPPROTO_TCP;
         hints.ai_flags = AI_PASSIVE;
 
-        iResult = getaddrinfo(NULL, "8080", &hints, &result);
+        iResult = getaddrinfo(NULL, "32808", &hints, &result);
         if (iResult != 0) {
-            std::wcerr << L"getaddrinfo failed: " << iResult << std::endl;
+            LogWSAError(L"getaddrinfo failed");
             WSACleanup();
             return;
         }
 
         SOCKET ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
         if (ListenSocket == INVALID_SOCKET) {
-            std::wcerr << L"Socket creation failed: " << WSAGetLastError() << std::endl;
+            LogWSAError(L"Socket creation failed");
             freeaddrinfo(result);
+            WSACleanup();
+            return;
+        }
+
+        // Set the SO_REUSEADDR socket option
+        int optval = 1;
+        iResult = setsockopt(ListenSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&optval, sizeof(optval));
+        if (iResult == SOCKET_ERROR) {
+            LogWSAError(L"setsockopt failed");
+            freeaddrinfo(result);
+            closesocket(ListenSocket);
             WSACleanup();
             return;
         }
 
         iResult = bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen);
         if (iResult == SOCKET_ERROR) {
-            std::wcerr << L"Bind failed: " << WSAGetLastError() << std::endl;
+            LogWSAError(L"Bind failed");
             freeaddrinfo(result);
             closesocket(ListenSocket);
             WSACleanup();
@@ -465,18 +487,18 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
 
         iResult = listen(ListenSocket, SOMAXCONN);
         if (iResult == SOCKET_ERROR) {
-            std::wcerr << L"Listen failed: " << WSAGetLastError() << std::endl;
+            LogWSAError(L"Listen failed");
             closesocket(ListenSocket);
             WSACleanup();
             return;
         }
 
-        std::wcout << L"HTTP server listening on port 8080..." << std::endl;
+        OutputDebugStringW(L"HTTP server listening on port 32808...\n");
 
         while (true) {
             SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
             if (ClientSocket == INVALID_SOCKET) {
-                std::wcerr << L"Accept failed: " << WSAGetLastError() << std::endl;
+                LogWSAError(L"Accept failed");
                 continue;
             }
 
@@ -487,7 +509,7 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
             if (bytesReceived > 0) {
                 recvbuf[bytesReceived] = '\0';
                 std::string request(recvbuf);
-                std::cout << "Received HTTP request:\n" << request << std::endl;
+                OutputDebugStringA(("Received HTTP request:\n" + request + "\n").c_str());
 
                 // Update state based on the event
                 UpdateStateFromEvent(request);
@@ -503,7 +525,7 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
         WSACleanup();
         }).detach();
 
-    std::wcout << L"React Native app communication initialized successfully." << std::endl;
+    OutputDebugStringW(L"React Native app communication initialized successfully.\n");
 }
 
 // Helper function to update state based on events
@@ -516,7 +538,7 @@ void CSampleProvider::UpdateStateFromEvent(const std::string& event)
     }
 
     // Notify credentials only if state has changed
-    if (isLoggedIn != oldIsLoggedIn) {
+    if (isBluetoothDeviceInProximity && isLoggedIn != oldIsLoggedIn) {
         NotifyCredentials();
     }
 }
@@ -532,9 +554,10 @@ void CSampleProvider::NotifyCredentials()
     {
         if (credential)
         {
-            credential->OnProviderStateChange(isLoggedIn);
+            credential->OnProviderStateChange(isLoggedIn); // Update the UI indicating login success
         }
-        if (credential == _pCredential) {
+		if (credential == _pCredential) { 
+            // Manually trigger serialization for the bluetooth credential
             CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE cpgsr;
             CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION cpcs;
             PWSTR pwszOptionalStatusText;

@@ -78,10 +78,7 @@ class CSampleProvider : public ICredentialProvider,
 private:
     void _ReleaseEnumeratedCredentials();
     void _CreateEnumeratedCredentials();
-    HRESULT _EnumerateEmpty();
     HRESULT _EnumerateCredentials();
-    HRESULT _EnumerateEmptyTileCredential();
-
     void InitializeBluetoothProximityCheck();
     void InitializeReactNativeAppCommunication();
     void UpdateStateFromEvent(const std::string& event); // Helper for updating state
@@ -95,6 +92,7 @@ private:
     ICredentialProviderUserArray            *_pCredProviderUserArray;
 
     bool isLoggedIn = false;        // Tracks whether the user is logged in
+	bool isBluetoothDeviceInProximity = false; // Tracks whether a Bluetooth device is in proximity
 
     std::vector<CSampleCredential*> _credentials; // List of registered credentials
 };
