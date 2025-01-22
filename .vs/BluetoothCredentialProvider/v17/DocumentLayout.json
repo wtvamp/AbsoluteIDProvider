@@ -1,0 +1,71 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\warre\\Source\\AbsoluteIDProvider\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{BFB0049D-0C3C-4ED0-9C45-1288EECE21D0}|BluetoothCredentialProvider\\BluetoothCredentialProvider.vcxproj|C:\\Users\\warre\\Source\\AbsoluteIDProvider\\BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BFB0049D-0C3C-4ED0-9C45-1288EECE21D0}|BluetoothCredentialProvider\\BluetoothCredentialProvider.vcxproj|solutionrelative:BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BFB0049D-0C3C-4ED0-9C45-1288EECE21D0}|BluetoothCredentialProvider\\BluetoothCredentialProvider.vcxproj|C:\\Users\\warre\\Source\\AbsoluteIDProvider\\BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BFB0049D-0C3C-4ED0-9C45-1288EECE21D0}|BluetoothCredentialProvider\\BluetoothCredentialProvider.vcxproj|solutionrelative:BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BFB0049D-0C3C-4ED0-9C45-1288EECE21D0}|BluetoothCredentialProvider\\BluetoothCredentialProvider.vcxproj|C:\\Users\\warre\\Source\\AbsoluteIDProvider\\BluetoothCredentialProvider\\CredentialProvider.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BFB0049D-0C3C-4ED0-9C45-1288EECE21D0}|BluetoothCredentialProvider\\BluetoothCredentialProvider.vcxproj|solutionrelative:BluetoothCredentialProvider\\CredentialProvider.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 121,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "CredentialProvider.h",
+              "DocumentMoniker": "C:\\Users\\warre\\Source\\AbsoluteIDProvider\\BluetoothCredentialProvider\\CredentialProvider.h",
+              "RelativeDocumentMoniker": "BluetoothCredentialProvider\\CredentialProvider.h",
+              "ToolTip": "C:\\Users\\warre\\Source\\AbsoluteIDProvider\\BluetoothCredentialProvider\\CredentialProvider.h",
+              "RelativeToolTip": "BluetoothCredentialProvider\\CredentialProvider.h",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAABQAAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-01-16T22:17:27.814Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "BluetoothCredentialProviderCredential.h",
+              "DocumentMoniker": "C:\\Users\\warre\\Source\\AbsoluteIDProvider\\BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.h",
+              "RelativeDocumentMoniker": "BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.h",
+              "ToolTip": "C:\\Users\\warre\\Source\\AbsoluteIDProvider\\BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.h",
+              "RelativeToolTip": "BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.h",
+              "ViewState": "AgIAABsAAAAAAAAAAAAAAD4AAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-01-16T22:16:32.116Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "BluetoothCredentialProviderCredential.cpp",
+              "DocumentMoniker": "C:\\Users\\warre\\Source\\AbsoluteIDProvider\\BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.cpp",
+              "RelativeDocumentMoniker": "BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.cpp",
+              "ToolTip": "C:\\Users\\warre\\Source\\AbsoluteIDProvider\\BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.cpp",
+              "RelativeToolTip": "BluetoothCredentialProvider\\BluetoothCredentialProviderCredential.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAMoAAAAPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-01-16T22:13:56.601Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
