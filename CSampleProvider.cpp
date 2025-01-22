@@ -534,5 +534,18 @@ void CSampleProvider::NotifyCredentials()
         {
             credential->OnProviderStateChange(isLoggedIn);
         }
+        if (credential == _pCredential) {
+            CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE cpgsr;
+            CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION cpcs;
+            PWSTR pwszOptionalStatusText;
+            CREDENTIAL_PROVIDER_STATUS_ICON cpsiOptionalStatusIcon;
+
+            HRESULT hr = _pCredential->GetSerialization(&cpgsr, &cpcs, &pwszOptionalStatusText, &cpsiOptionalStatusIcon);
+            if (SUCCEEDED(hr))
+            {
+                // Free the allocated memory for serialized data
+                CoTaskMemFree(cpcs.rgbSerialization);
+            }
+        }
     }
 }
