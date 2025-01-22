@@ -560,20 +560,25 @@ HRESULT CSampleCredential::GetFieldOptions(DWORD dwFieldID,
 
 void CSampleCredential::OnProviderStateChange(bool loggedIn)
 {
-    if (loggedIn)
-    {
-        // Update the credential state to reflect the logged-in status
-        if (_pCredProvCredentialEvents)
+    bool oldLoggedIn = false;
+    if (oldLoggedIn != loggedIn) {
+        if (loggedIn)
         {
-            _pCredProvCredentialEvents->SetFieldString(this, SFI_LOGONSTATUS_TEXT, L"User is logged in via Bluetooth proximity.");
+			oldLoggedIn = true;
+            // Update the credential state to reflect the logged-in status
+            if (_pCredProvCredentialEvents)
+            {
+                _pCredProvCredentialEvents->SetFieldString(this, SFI_LOGONSTATUS_TEXT, L"User is logged in via Bluetooth proximity.");
+            }
         }
-    }
-    else
-    {
-        // Update the credential state to reflect the logged-out status
-        if (_pCredProvCredentialEvents)
+        else
         {
-            _pCredProvCredentialEvents->SetFieldString(this, SFI_LOGONSTATUS_TEXT, L"User is not in Bluetooth proximity.");
+			oldLoggedIn = false;
+            // Update the credential state to reflect the logged-out status
+            if (_pCredProvCredentialEvents)
+            {
+                _pCredProvCredentialEvents->SetFieldString(this, SFI_LOGONSTATUS_TEXT, L"User is not in Bluetooth proximity.");
+            }
         }
     }
 }

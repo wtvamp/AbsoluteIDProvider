@@ -30,7 +30,8 @@
 CSampleProvider::CSampleProvider():
     _cRef(1),
     _pCredential(nullptr),
-    _pCredProviderUserArray(nullptr)
+    _pCredProviderUserArray(nullptr),
+	isLoggedIn(false)
 {
     DllAddRef();
 }
@@ -373,7 +374,8 @@ void CSampleProvider::CheckBluetoothProximity()
         btdsp.fReturnRemembered = TRUE;
         btdsp.fReturnUnknown = TRUE;
         btdsp.fReturnConnected = TRUE;
-        btdsp.cTimeoutMultiplier = 1; // 1.28 seconds
+		btdsp.fIssueInquiry = TRUE;
+        btdsp.cTimeoutMultiplier = 5; // 1.28 seconds
 
         HBLUETOOTH_DEVICE_FIND hFindDevice = BluetoothFindFirstDevice(&btdsp, &btdi);
         if (hFindDevice)
@@ -381,7 +383,7 @@ void CSampleProvider::CheckBluetoothProximity()
             do
             {
                 std::wcout << L"Found Bluetooth device: " << btdi.szName << std::endl;
-                if (wcscmp(btdi.szName, L"MyTargetDevice") == 0)
+                if (wcscmp(btdi.szName, L"Warren Thompson’s iPhone") == 0)
                 {
                     std::wcout << L"Target device found!" << std::endl;
                     deviceFound = true;
