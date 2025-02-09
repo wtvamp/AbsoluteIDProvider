@@ -6,10 +6,6 @@
 //
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
-// CSampleProvider implements ICredentialProvider, which is the main
-// interface that logonUI uses to decide which tiles to display.
-// In this sample, we will display one tile that uses each of the nine
-// available UI controls.
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 #define _WINSOCKAPI_        // Prevent inclusion of winsock.h
 
@@ -19,24 +15,35 @@
 #include <bluetoothapis.h> // Windows Bluetooth API
 #include <iostream>
 #include <thread>
+#include <vector>
+#include <string>
+#include <chrono>
 #include <initguid.h>
 #include "CSampleProvider.h"
+#include "CSampleCredential.h"
 #include "guid.h"
 
-
 #pragma comment(lib, "Bthprops.lib") // Link Bluetooth library
-#pragma comment(lib, "Ws2_32.lib") // Link Winsock library
+#pragma comment(lib, "Ws2_32.lib")     // Link Winsock library
 
-CSampleProvider::CSampleProvider():
+//
+// CSampleProvider Implementation
+//
+
+// Constructor for CSampleProvider.
+CSampleProvider::CSampleProvider() :
     _cRef(1),
     _pCredential(nullptr),
     _pCredProviderUserArray(nullptr),
-	isLoggedIn(false),
-	isBluetoothDeviceInProximity(false)
+    _pCredProviderEvents(nullptr),
+    isLoggedIn(false),
+    isBluetoothDeviceInProximity(false),
+    _fRecreateEnumeratedCredentials(true)
 {
     DllAddRef();
 }
 
+// Destructor for CSampleProvider.
 CSampleProvider::~CSampleProvider()
 {
     if (_pCredential != nullptr)
@@ -49,26 +56,25 @@ CSampleProvider::~CSampleProvider()
         _pCredProviderUserArray->Release();
         _pCredProviderUserArray = nullptr;
     }
-
+    if (_pCredProviderEvents)
+    {
+        _pCredProviderEvents->Release();
+        _pCredProviderEvents = nullptr;
+    }
     DllRelease();
 }
 
-// SetUsageScenario is the provider's cue that it's going to be asked for tiles
-// in a subsequent call.
+// SetUsageScenario tells us which scenario (logon or unlock) we are in.
 HRESULT CSampleProvider::SetUsageScenario(
     CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
     DWORD /*dwFlags*/)
 {
     HRESULT hr;
 
-    // Decide which scenarios to support here. Returning E_NOTIMPL simply tells the caller
-    // that we're not designed for that scenario.
     switch (cpus)
     {
     case CPUS_LOGON:
     case CPUS_UNLOCK_WORKSTATION:
-        // The reason why we need _fRecreateEnumeratedCredentials is because ICredentialProviderSetUserArray::SetUserArray() is called after ICredentialProvider::SetUsageScenario(),
-        // while we need the ICredentialProviderUserArray during enumeration in ICredentialProvider::GetCredentialCount()
         _cpus = cpus;
         _fRecreateEnumeratedCredentials = true;
         hr = S_OK;
@@ -87,67 +93,55 @@ HRESULT CSampleProvider::SetUsageScenario(
     return hr;
 }
 
-// SetSerialization takes the kind of buffer that you would normally return to LogonUI for
-// an authentication attempt.  It's the opposite of ICredentialProviderCredential::GetSerialization.
-// GetSerialization is implement by a credential and serializes that credential.  Instead,
-// SetSerialization takes the serialization and uses it to create a tile.
-//
-// SetSerialization is called for two main scenarios.  The first scenario is in the credui case
-// where it is prepopulating a tile with credentials that the user chose to store in the OS.
-// The second situation is in a remote logon case where the remote client may wish to
-// prepopulate a tile with a username, or in some cases, completely populate the tile and
-// use it to logon without showing any UI.
-//
-// If you wish to see an example of SetSerialization, please see either the SampleCredentialProvider
-// sample or the SampleCredUICredentialProvider sample.  [The logonUI team says, "The original sample that
-// this was built on top of didn't have SetSerialization.  And when we decided SetSerialization was
-// important enough to have in the sample, it ended up being a non-trivial amount of work to integrate
-// it into the main sample.  We felt it was more important to get these samples out to you quickly than to
-// hold them in order to do the work to integrate the SetSerialization changes from SampleCredentialProvider
-// into this sample.]
+// SetSerialization is not implemented in this sample.
 HRESULT CSampleProvider::SetSerialization(
-    _In_ CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION const * /*pcpcs*/)
+    _In_ CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION const* /*pcpcs*/)
 {
     return E_NOTIMPL;
 }
 
-// Called by LogonUI to give you a callback.  Providers often use the callback if they
-// some event would cause them to need to change the set of tiles that they enumerated.
+// Advise: LogonUI calls this to provide a callback for when our credentials change.
 HRESULT CSampleProvider::Advise(
-    _In_ ICredentialProviderEvents * /*pcpe*/,
-    _In_ UINT_PTR /*upAdviseContext*/)
+    _In_ ICredentialProviderEvents *pcpe,
+    _In_ UINT_PTR upAdviseContext)
 {
-    return E_NOTIMPL;
+    if (pcpe)
+    {
+        _pCredProviderEvents = pcpe;
+        _pCredProviderEvents->AddRef();
+        _upAdviseContext = upAdviseContext; // Store the context
+    }
+    return S_OK;
 }
 
-// Called by LogonUI when the ICredentialProviderEvents callback is no longer valid.
+
+// UnAdvise: LogonUI calls this to indicate that the ICredentialProviderEvents callback is no longer valid.
 HRESULT CSampleProvider::UnAdvise()
 {
-    return E_NOTIMPL;
+    if (_pCredProviderEvents)
+    {
+        _pCredProviderEvents->Release();
+        _pCredProviderEvents = nullptr;
+    }
+    return S_OK;
 }
 
-// Called by LogonUI to determine the number of fields in your tiles.  This
-// does mean that all your tiles must have the same number of fields.
-// This number must include both visible and invisible fields. If you want a tile
-// to have different fields from the other tiles you enumerate for a given usage
-// scenario you must include them all in this count and then hide/show them as desired
-// using the field descriptors.
+// GetFieldDescriptorCount: Returns the number of fields in our tile.
 HRESULT CSampleProvider::GetFieldDescriptorCount(
-    _Out_ DWORD *pdwCount)
+    _Out_ DWORD* pdwCount)
 {
     *pdwCount = SFI_NUM_FIELDS;
     return S_OK;
 }
 
-// Gets the field descriptor for a particular field.
+// GetFieldDescriptorAt: Returns the field descriptor for a specific field.
 HRESULT CSampleProvider::GetFieldDescriptorAt(
     DWORD dwIndex,
-    _Outptr_result_nullonfailure_ CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR **ppcpfd)
+    _Outptr_result_nullonfailure_ CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR** ppcpfd)
 {
     HRESULT hr;
     *ppcpfd = nullptr;
 
-    // Verify dwIndex is a valid field.
     if ((dwIndex < SFI_NUM_FIELDS) && ppcpfd)
     {
         hr = FieldDescriptorCoAllocCopy(s_rgCredProvFieldDescriptors[dwIndex], ppcpfd);
@@ -160,21 +154,13 @@ HRESULT CSampleProvider::GetFieldDescriptorAt(
     return hr;
 }
 
-// Sets pdwCount to the number of tiles that we wish to show at this time.
-// Sets pdwDefault to the index of the tile which should be used as the default.
-// The default tile is the tile which will be shown in the zoomed view by default. If
-// more than one provider specifies a default the last used cred prov gets to pick
-// the default. If *pbAutoLogonWithDefault is TRUE, LogonUI will immediately call
-// GetSerialization on the credential you've specified as the default and will submit
-// that credential for authentication without showing any further UI.
+// GetCredentialCount: Returns the number of tiles to show.
 HRESULT CSampleProvider::GetCredentialCount(
-    _Out_ DWORD *pdwCount,
-    _Out_ DWORD *pdwDefault,
-    _Out_ BOOL *pbAutoLogonWithDefault)
+    _Out_ DWORD* pdwCount,
+    _Out_ DWORD* pdwDefault,
+    _Out_ BOOL* pbAutoLogonWithDefault)
 {
-    *pdwDefault = CREDENTIAL_PROVIDER_NO_DEFAULT;
-    *pbAutoLogonWithDefault = FALSE;
-
+    // If our enumeration needs to be refreshed, do so.
     if (_fRecreateEnumeratedCredentials)
     {
         _fRecreateEnumeratedCredentials = false;
@@ -182,16 +168,30 @@ HRESULT CSampleProvider::GetCredentialCount(
         _CreateEnumeratedCredentials();
     }
 
+    // We are only showing one tile in this provider.
     *pdwCount = 1;
+
+    // If the phone is in proximity and we have received the "User logged in" event,
+    // then we want to auto logon.
+    if (isLoggedIn && isBluetoothDeviceInProximity)
+    {
+        *pdwDefault = 0;               // Use our only tile as the default.
+        *pbAutoLogonWithDefault = TRUE;  // Trigger auto logon.
+    }
+    else
+    {
+        *pdwDefault = CREDENTIAL_PROVIDER_NO_DEFAULT;
+        *pbAutoLogonWithDefault = FALSE;
+    }
 
     return S_OK;
 }
 
-// Returns the credential at the index specified by dwIndex. This function is called by logonUI to enumerate
-// the tiles.
+
+// GetCredentialAt: Returns the credential at the specified index.
 HRESULT CSampleProvider::GetCredentialAt(
     DWORD dwIndex,
-    _Outptr_result_nullonfailure_ ICredentialProviderCredential **ppcpc)
+    _Outptr_result_nullonfailure_ ICredentialProviderCredential** ppcpc)
 {
     HRESULT hr = E_INVALIDARG;
     *ppcpc = nullptr;
@@ -203,9 +203,8 @@ HRESULT CSampleProvider::GetCredentialAt(
     return hr;
 }
 
-// This function will be called by LogonUI after SetUsageScenario succeeds.
-// Sets the User Array with the list of users to be enumerated on the logon screen.
-HRESULT CSampleProvider::SetUserArray(_In_ ICredentialProviderUserArray *users)
+// SetUserArray: Called by LogonUI to pass in the array of users.
+HRESULT CSampleProvider::SetUserArray(_In_ ICredentialProviderUserArray* users)
 {
     if (_pCredProviderUserArray)
     {
@@ -216,7 +215,7 @@ HRESULT CSampleProvider::SetUserArray(_In_ ICredentialProviderUserArray *users)
     return S_OK;
 }
 
-// Update _CreateEnumeratedCredentials to include initialization of new features
+// _CreateEnumeratedCredentials: Creates the credential tiles.
 void CSampleProvider::_CreateEnumeratedCredentials()
 {
     InitializeBluetoothProximityCheck();
@@ -235,6 +234,7 @@ void CSampleProvider::_CreateEnumeratedCredentials()
     }
 }
 
+// _ReleaseEnumeratedCredentials: Releases any enumerated credentials.
 void CSampleProvider::_ReleaseEnumeratedCredentials()
 {
     if (_pCredential != nullptr)
@@ -244,11 +244,11 @@ void CSampleProvider::_ReleaseEnumeratedCredentials()
     }
 }
 
+// _EnumerateCredentials: Enumerates users and creates a credential for each.
 HRESULT CSampleProvider::_EnumerateCredentials()
 {
     HRESULT hr = E_UNEXPECTED;
 
-    // Ensure the user array is available
     if (_pCredProviderUserArray != nullptr)
     {
         DWORD dwUserCount = 0;
@@ -256,25 +256,19 @@ HRESULT CSampleProvider::_EnumerateCredentials()
 
         if (SUCCEEDED(hr) && dwUserCount > 0)
         {
-            // Iterate over each user and create a credential
             for (DWORD i = 0; i < dwUserCount; i++)
             {
                 ICredentialProviderUser* pCredUser = nullptr;
                 hr = _pCredProviderUserArray->GetAt(i, &pCredUser);
                 if (SUCCEEDED(hr) && pCredUser != nullptr)
                 {
-                    // Create a new credential
                     CSampleCredential* pCredential = new (std::nothrow) CSampleCredential();
                     if (pCredential != nullptr)
                     {
-                        // Initialize the credential
                         hr = pCredential->Initialize(_cpus, s_rgCredProvFieldDescriptors, s_rgFieldStatePairs, pCredUser);
                         if (SUCCEEDED(hr))
                         {
-                            // Register the credential for state notifications
                             RegisterCredential(pCredential);
-
-                            // Store the credential (only storing the first for simplicity here)
                             _pCredential = pCredential;
                         }
                         else
@@ -287,7 +281,6 @@ HRESULT CSampleProvider::_EnumerateCredentials()
                         hr = E_OUTOFMEMORY;
                     }
 
-                    // Release the user reference
                     pCredUser->Release();
                 }
             }
@@ -301,29 +294,66 @@ HRESULT CSampleProvider::_EnumerateCredentials()
     return hr;
 }
 
-// Boilerplate code to create our provider.
-HRESULT CSample_CreateInstance(_In_ REFIID riid, _Outptr_ void **ppv)
+// RegisterCredential: Stores a credential pointer for later notifications.
+void CSampleProvider::RegisterCredential(CSampleCredential* pCredential)
 {
-    HRESULT hr;
-    CSampleProvider *pProvider = new(std::nothrow) CSampleProvider();
-    if (pProvider)
-    {
-        hr = pProvider->QueryInterface(riid, ppv);
-        pProvider->Release();
-    }
-    else
-    {
-        hr = E_OUTOFMEMORY;
-    }
-    return hr;
+    _credentials.push_back(pCredential);
 }
 
+// NotifyCredentials: Notifies all stored credentials of a state change.
+void CSampleProvider::NotifyCredentials()
+{
+    for (auto* credential : _credentials)
+    {
+        if (credential)
+        {
+            // Pass the updated state (isLoggedIn) to the credential so it can update its UI.
+            credential->OnProviderStateChange(isLoggedIn);
+        }
+        if (credential == _pCredential)
+        {
+            // Optionally, trigger serialization for this credential.
+            CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE cpgsr;
+            CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION cpcs;
+            PWSTR pwszOptionalStatusText = nullptr;
+            CREDENTIAL_PROVIDER_STATUS_ICON cpsiOptionalStatusIcon;
+
+            HRESULT hr = _pCredential->GetSerialization(&cpgsr, &cpcs, &pwszOptionalStatusText, &cpsiOptionalStatusIcon);
+            if (SUCCEEDED(hr))
+            {
+                CoTaskMemFree(cpcs.rgbSerialization);
+                if (pwszOptionalStatusText)
+                {
+                    CoTaskMemFree(pwszOptionalStatusText);
+                }
+            }
+        }
+    }
+}
+
+// UpdateStateFromEvent: Called when an HTTP event is received from the React Native app.
+void CSampleProvider::UpdateStateFromEvent(const std::string& event)
+{
+    if (event.find("User logged in") != std::string::npos)
+    {
+        isLoggedIn = true;
+        // Notify LogonUI that our credentials have changed, using the stored context.
+        if (_pCredProviderEvents)
+        {
+            _pCredProviderEvents->CredentialsChanged(_upAdviseContext);
+        }
+    }
+}
+
+// ---------------------------------------------------
+// Bluetooth Proximity Check and React Native App Communication
+// ---------------------------------------------------
 
 void CSampleProvider::InitializeBluetoothProximityCheck()
 {
     isBluetoothDeviceInProximity = false;
-   // std::wcout << L"Initializing Bluetooth Proximity Check..." << std::endl;
     OutputDebugStringW(L"Initializing Bluetooth Proximity Check...\n");
+
     // Initialize Bluetooth APIs
     HANDLE hRadio = NULL;
     BLUETOOTH_FIND_RADIO_PARAMS btfrp = { sizeof(BLUETOOTH_FIND_RADIO_PARAMS) };
@@ -340,9 +370,8 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
         return;
     }
 
-    // Start a thread to periodically check Bluetooth proximity
+    // Start a thread to periodically check Bluetooth proximity.
     std::thread([this, hRadio]() {
-        
         OutputDebugStringW(L"Checking Bluetooth proximity...\n");
         while (!isBluetoothDeviceInProximity)
         {
@@ -350,7 +379,6 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
 
             BLUETOOTH_DEVICE_SEARCH_PARAMS btdsp = { sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS) };
             BLUETOOTH_DEVICE_INFO btdi = { sizeof(BLUETOOTH_DEVICE_INFO) };
-
             bool deviceFound = false;
 
             btdsp.hRadio = hRadio;
@@ -359,14 +387,16 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
             btdsp.fReturnUnknown = TRUE;
             btdsp.fReturnConnected = TRUE;
             btdsp.fIssueInquiry = TRUE;
-            btdsp.cTimeoutMultiplier = 5; // 1.28 seconds
+            btdsp.cTimeoutMultiplier = 5; // About 6.4 seconds
 
             HBLUETOOTH_DEVICE_FIND hFindDevice = BluetoothFindFirstDevice(&btdsp, &btdi);
             if (hFindDevice)
             {
                 do
                 {
-                    OutputDebugStringW((std::wstring(L"Found Bluetooth device: ") + btdi.szName).c_str());
+                    std::wstring debugMsg = L"Found Bluetooth device: ";
+                    debugMsg += btdi.szName;
+                    OutputDebugStringW(debugMsg.c_str());
                     if (wcscmp(btdi.szName, L"Warren Thompson’s iPhone") == 0)
                     {
                         OutputDebugStringW(L"Target device found!\n");
@@ -378,20 +408,12 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
                 BluetoothFindDeviceClose(hFindDevice);
             }
 
-            if (deviceFound)
-            {
-                isBluetoothDeviceInProximity = true;
-            }
-            else
-            {
-                isBluetoothDeviceInProximity = false;
-            }
-
-            std::this_thread::sleep_for(std::chrono::seconds(10)); // Check every 10 seconds
+            isBluetoothDeviceInProximity = deviceFound;
+            std::this_thread::sleep_for(std::chrono::seconds(10));
         }
 
         CloseHandle(hRadio);
-    }).detach();
+        }).detach();
 }
 
 void LogWSAError(const wchar_t* msg)
@@ -403,7 +425,6 @@ void LogWSAError(const wchar_t* msg)
     OutputDebugStringW(fullMsg.c_str());
     LocalFree(s);
 }
-
 
 void CSampleProvider::InitializeReactNativeAppCommunication()
 {
@@ -420,7 +441,6 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
             return;
         }
 
-        // Set up socket
         struct addrinfo* result = NULL, hints;
         ZeroMemory(&hints, sizeof(hints));
         hints.ai_family = AF_INET;
@@ -443,7 +463,6 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
             return;
         }
 
-        // Set the SO_REUSEADDR socket option
         int optval = 1;
         iResult = setsockopt(ListenSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&optval, sizeof(optval));
         if (iResult == SOCKET_ERROR) {
@@ -484,15 +503,16 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
 
             char recvbuf[512];
             int recvbuflen = 512;
-
             int bytesReceived = recv(ClientSocket, recvbuf, recvbuflen, 0);
             if (bytesReceived > 0) {
                 recvbuf[bytesReceived] = '\0';
                 std::string request(recvbuf);
                 OutputDebugStringA(("Received HTTP request:\n" + request + "\n").c_str());
 
-                // Update state based on the event
+                // Update state based on the event.
                 UpdateStateFromEvent(request);
+                // Optionally, notify credentials immediately.
+                NotifyCredentials();
 
                 const char* response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nEvent Received";
                 send(ClientSocket, response, (int)strlen(response), 0);
@@ -508,46 +528,19 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
     OutputDebugStringW(L"React Native app communication initialized successfully.\n");
 }
 
-// Helper function to update state based on events
-void CSampleProvider::UpdateStateFromEvent(const std::string& event)
+// Boilerplate code to create our provider.
+HRESULT CSample_CreateInstance(_In_ REFIID riid, _Outptr_ void** ppv)
 {
-    bool oldIsLoggedIn = isLoggedIn;
-
-    if (event.find("User logged in") != std::string::npos) {
-        if (isBluetoothDeviceInProximity) {
-            NotifyCredentials();
-        }
-    }
-
-
-}
-
-void CSampleProvider::RegisterCredential(CSampleCredential* pCredential)
-{
-    _credentials.push_back(pCredential);
-}
-
-void CSampleProvider::NotifyCredentials()
-{
-    for (auto* credential : _credentials)
+    HRESULT hr;
+    CSampleProvider* pProvider = new(std::nothrow) CSampleProvider();
+    if (pProvider)
     {
-        if (credential)
-        {
-            credential->OnProviderStateChange(isLoggedIn); // Update the UI indicating login success
-        }
-		if (credential == _pCredential) { 
-            // Manually trigger serialization for the bluetooth credential
-            CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE cpgsr;
-            CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION cpcs;
-            PWSTR pwszOptionalStatusText;
-            CREDENTIAL_PROVIDER_STATUS_ICON cpsiOptionalStatusIcon;
-
-            HRESULT hr = _pCredential->GetSerialization(&cpgsr, &cpcs, &pwszOptionalStatusText, &cpsiOptionalStatusIcon);
-            if (SUCCEEDED(hr))
-            {
-                // Free the allocated memory for serialized data
-                CoTaskMemFree(cpcs.rgbSerialization);
-            }
-        }
+        hr = pProvider->QueryInterface(riid, ppv);
+        pProvider->Release();
     }
+    else
+    {
+        hr = E_OUTOFMEMORY;
+    }
+    return hr;
 }

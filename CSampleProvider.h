@@ -95,4 +95,8 @@ private:
 	bool isBluetoothDeviceInProximity = false; // Tracks whether a Bluetooth device is in proximity
 
     std::vector<CSampleCredential*> _credentials; // List of registered credentials
+    // Add the events pointer to allow notifications to LogonUI.
+    ICredentialProviderEvents* _pCredProviderEvents = nullptr;
+    UINT_PTR _upAdviseContext = 0;
+
 };

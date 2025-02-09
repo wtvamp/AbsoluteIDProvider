@@ -364,119 +364,144 @@ HRESULT CSampleCredential::CommandLinkClicked(DWORD dwFieldID)
     return S_OK;
 }
 
-HRESULT CSampleCredential::GetSerialization(_Out_ CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE* pcpgsr,
+HRESULT CSampleCredential::GetSerialization(
+    _Out_ CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE* pcpgsr,
     _Out_ CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION* pcpcs,
     _Outptr_result_maybenull_ PWSTR* ppwszOptionalStatusText,
     _Out_ CREDENTIAL_PROVIDER_STATUS_ICON* pcpsiOptionalStatusIcon)
 {
-    // Initialize the HRESULT variable to S_OK, indicating success.
+    OutputDebugString(L"GetSerialization: Entered.\n");
+
     HRESULT hr = S_OK;
-    // Set the serialization response to indicate that the credential is not finished.
     *pcpgsr = CPGSR_NO_CREDENTIAL_NOT_FINISHED;
-    // Initialize the optional status text pointer to nullptr.
     *ppwszOptionalStatusText = nullptr;
-    // Initialize the optional status icon to none.
     *pcpsiOptionalStatusIcon = CPSI_NONE;
-    // Zero out the memory for the credential serialization structure.
     ZeroMemory(pcpcs, sizeof(*pcpcs));
 
-    // Check if the user is a local user.
-    if (_fIsLocalUser)
+    // Check if this is a Microsoft account based on the presence of '@' in the qualified username.
+    bool isMicrosoftAccount = false;
+    if (_pszQualifiedUserName && wcschr(_pszQualifiedUserName, L'@') != nullptr)
     {
-        // Declare pointers to store the domain and username.
-        PWSTR pszDomain;
-        PWSTR pszUsername;
-        // Split the qualified username into domain and username.
+        isMicrosoftAccount = true;
+        OutputDebugString(L"GetSerialization: Detected Microsoft account based on qualified username.\n");
+    }
+
+    // For interactive unlock, treat Microsoft accounts as local.
+    if (_fIsLocalUser || isMicrosoftAccount)
+    {
+        OutputDebugString(L"GetSerialization: Using KerbInteractiveUnlockLogon branch.\n");
+
+        PWSTR pszDomain = nullptr;
+        PWSTR pszUsername = nullptr;
         hr = SplitDomainAndUsername(_pszQualifiedUserName, &pszDomain, &pszUsername);
         if (SUCCEEDED(hr))
         {
-            // Declare a KERB_INTERACTIVE_UNLOCK_LOGON structure to store the logon information.
+            wchar_t debugMsg[512] = { 0 };
+            StringCchPrintf(debugMsg, ARRAYSIZE(debugMsg),
+                L"GetSerialization: Split result - Domain: %s, Username: %s\n",
+                pszDomain ? pszDomain : L"(null)", pszUsername ? pszUsername : L"(null)");
+            OutputDebugString(debugMsg);
+
+            // Initialize the KerbInteractiveUnlockLogon structure.
+            // Note: Replace the hardcoded password with secure retrieval.
             KERB_INTERACTIVE_UNLOCK_LOGON kiul;
-            // Initialize the logon structure with the domain, username, and usage scenario.
             hr = KerbInteractiveUnlockLogonInit(pszDomain, pszUsername, L"Awe$ome42", _cpus, &kiul);
             if (SUCCEEDED(hr))
             {
-                // Pack the logon structure into the credential serialization structure.
+                OutputDebugString(L"GetSerialization: KerbInteractiveUnlockLogonInit succeeded.\n");
                 hr = KerbInteractiveUnlockLogonPack(kiul, &pcpcs->rgbSerialization, &pcpcs->cbSerialization);
                 if (SUCCEEDED(hr))
                 {
-                    // Retrieve the authentication package.
+                    OutputDebugString(L"GetSerialization: KerbInteractiveUnlockLogonPack succeeded.\n");
                     ULONG ulAuthPackage;
                     hr = RetrieveNegotiateAuthPackage(&ulAuthPackage);
                     if (SUCCEEDED(hr))
                     {
-                        // Set the authentication package and credential provider CLSID in the serialization structure.
                         pcpcs->ulAuthenticationPackage = ulAuthPackage;
                         pcpcs->clsidCredentialProvider = CLSID_CSample;
-                        // Set the serialization response to indicate that the credential is finished.
                         *pcpgsr = CPGSR_RETURN_CREDENTIAL_FINISHED;
+                        OutputDebugString(L"GetSerialization: Successfully finished serialization.\n");
                     }
-                }
-            }
-            // Free the memory allocated for the domain and username.
-            CoTaskMemFree(pszDomain);
-            CoTaskMemFree(pszUsername);
-        }
-    }
-    else
-    {
-        // Declare a variable to store the authentication flags.
-        DWORD dwAuthFlags = CRED_PACK_PROTECTED_CREDENTIALS | CRED_PACK_ID_PROVIDER_CREDENTIALS;
-
-        // Get the size of the authentication buffer to allocate.
-        if (!CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, L"Awe$ome42", nullptr, &pcpcs->cbSerialization) &&
-            (GetLastError() == ERROR_INSUFFICIENT_BUFFER))
-        {
-            // Allocate memory for the authentication buffer.
-            pcpcs->rgbSerialization = static_cast<byte*>(CoTaskMemAlloc(pcpcs->cbSerialization));
-            if (pcpcs->rgbSerialization != nullptr)
-            {
-                // Initialize the HRESULT variable to S_OK, indicating success.
-                hr = S_OK;
-
-                // Retrieve the authentication buffer.
-                if (CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, L"Awe$ome42", pcpcs->rgbSerialization, &pcpcs->cbSerialization))
-                {
-                    // Retrieve the authentication package.
-                    ULONG ulAuthPackage;
-                    hr = RetrieveNegotiateAuthPackage(&ulAuthPackage);
-                    if (SUCCEEDED(hr))
+                    else
                     {
-                        // Set the authentication package and credential provider CLSID in the serialization structure.
-                        pcpcs->ulAuthenticationPackage = ulAuthPackage;
-                        pcpcs->clsidCredentialProvider = CLSID_CSample;
-
-                        // Set the serialization response to indicate that the credential is finished.
-                        *pcpgsr = CPGSR_RETURN_CREDENTIAL_FINISHED;
+                        OutputDebugString(L"GetSerialization: RetrieveNegotiateAuthPackage failed.\n");
                     }
                 }
                 else
                 {
-                    // If the authentication buffer retrieval fails, set the HRESULT variable to the error code.
+                    OutputDebugString(L"GetSerialization: KerbInteractiveUnlockLogonPack failed.\n");
+                }
+            }
+            else
+            {
+                OutputDebugString(L"GetSerialization: KerbInteractiveUnlockLogonInit failed.\n");
+            }
+
+            CoTaskMemFree(pszDomain);
+            CoTaskMemFree(pszUsername);
+        }
+        else
+        {
+            OutputDebugString(L"GetSerialization: SplitDomainAndUsername failed.\n");
+        }
+    }
+    else
+    {
+        OutputDebugString(L"GetSerialization: Using CredPackAuthenticationBuffer branch.\n");
+
+        DWORD dwAuthFlags = CRED_PACK_PROTECTED_CREDENTIALS | CRED_PACK_ID_PROVIDER_CREDENTIALS;
+        // First, get the required buffer size.
+        if (!CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, L"Awe$ome42",
+            nullptr, &pcpcs->cbSerialization) &&
+            (GetLastError() == ERROR_INSUFFICIENT_BUFFER))
+        {
+            pcpcs->rgbSerialization = static_cast<BYTE*>(CoTaskMemAlloc(pcpcs->cbSerialization));
+            if (pcpcs->rgbSerialization != nullptr)
+            {
+                hr = S_OK;
+                if (CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, L"Awe$ome42",
+                    pcpcs->rgbSerialization, &pcpcs->cbSerialization))
+                {
+                    OutputDebugString(L"GetSerialization: CredPackAuthenticationBuffer succeeded.\n");
+                    ULONG ulAuthPackage;
+                    hr = RetrieveNegotiateAuthPackage(&ulAuthPackage);
+                    if (SUCCEEDED(hr))
+                    {
+                        pcpcs->ulAuthenticationPackage = ulAuthPackage;
+                        pcpcs->clsidCredentialProvider = CLSID_CSample;
+                        *pcpgsr = CPGSR_RETURN_CREDENTIAL_FINISHED;
+                        OutputDebugString(L"GetSerialization: Finished serialization in non-local branch.\n");
+                    }
+                    else
+                    {
+                        OutputDebugString(L"GetSerialization: RetrieveNegotiateAuthPackage failed (non-local branch).\n");
+                    }
+                }
+                else
+                {
                     hr = HRESULT_FROM_WIN32(GetLastError());
+                    OutputDebugString(L"GetSerialization: CredPackAuthenticationBuffer failed (non-local branch).\n");
                     if (SUCCEEDED(hr))
                     {
                         hr = E_FAIL;
                     }
-                }
-
-                // If the HRESULT variable indicates failure, free the memory allocated for the authentication buffer.
-                if (FAILED(hr))
-                {
                     CoTaskMemFree(pcpcs->rgbSerialization);
                 }
             }
             else
             {
-                // If memory allocation fails, set the HRESULT variable to E_OUTOFMEMORY.
                 hr = E_OUTOFMEMORY;
+                OutputDebugString(L"GetSerialization: Memory allocation for rgbSerialization failed.\n");
             }
         }
+        else
+        {
+            OutputDebugString(L"GetSerialization: Unexpected behavior from CredPackAuthenticationBuffer call.\n");
+        }
     }
-    // Return the HRESULT value indicating success or failure.
+
     return hr;
 }
-
 
 struct REPORT_RESULT_STATUS_INFO
 {
