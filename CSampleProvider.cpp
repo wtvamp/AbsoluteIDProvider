@@ -319,11 +319,11 @@ HRESULT CSample_CreateInstance(_In_ REFIID riid, _Outptr_ void **ppv)
 }
 
 
-// Placeholder function to initialize Bluetooth Proximity Check
 void CSampleProvider::InitializeBluetoothProximityCheck()
 {
-    std::wcout << L"Initializing Bluetooth Proximity Check..." << std::endl;
-
+    isBluetoothDeviceInProximity = false;
+   // std::wcout << L"Initializing Bluetooth Proximity Check..." << std::endl;
+    OutputDebugStringW(L"Initializing Bluetooth Proximity Check...\n");
     // Initialize Bluetooth APIs
     HANDLE hRadio = NULL;
     BLUETOOTH_FIND_RADIO_PARAMS btfrp = { sizeof(BLUETOOTH_FIND_RADIO_PARAMS) };
@@ -331,87 +331,67 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
     HBLUETOOTH_RADIO_FIND hFind = BluetoothFindFirstRadio(&btfrp, &hRadio);
     if (hFind)
     {
-        std::wcout << L"Bluetooth radio found and initialized successfully." << std::endl;
+        OutputDebugStringW(L"Bluetooth radio found and initialized successfully.\n");
         BluetoothFindRadioClose(hFind);
-        CloseHandle(hRadio);
     }
     else
     {
-        std::wcerr << L"Failed to initialize Bluetooth radio. Ensure Bluetooth is enabled." << std::endl;
+        OutputDebugStringW(L"Failed to initialize Bluetooth radio. Ensure Bluetooth is enabled.\n");
         return;
     }
 
     // Start a thread to periodically check Bluetooth proximity
-    std::thread([this]() {
-        while (true)
+    std::thread([this, hRadio]() {
+        
+        OutputDebugStringW(L"Checking Bluetooth proximity...\n");
+        while (!isBluetoothDeviceInProximity)
         {
-            CheckBluetoothProximity();
-            std::this_thread::sleep_for(std::chrono::seconds(10)); // Check every 10 seconds
-        }
-    }).detach();
-}
+            OutputDebugStringW(L"Scanning for nearby Bluetooth devices...\n");
 
-void CSampleProvider::CheckBluetoothProximity()
-{
-	OutputDebugStringW(L"Scanning for nearby Bluetooth devices...\n");
+            BLUETOOTH_DEVICE_SEARCH_PARAMS btdsp = { sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS) };
+            BLUETOOTH_DEVICE_INFO btdi = { sizeof(BLUETOOTH_DEVICE_INFO) };
 
-    HANDLE hRadio = NULL;
-    BLUETOOTH_FIND_RADIO_PARAMS btfrp = { sizeof(BLUETOOTH_FIND_RADIO_PARAMS) };
-    BLUETOOTH_DEVICE_SEARCH_PARAMS btdsp = { sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS) };
-    BLUETOOTH_DEVICE_INFO btdi = { sizeof(BLUETOOTH_DEVICE_INFO) };
+            bool deviceFound = false;
 
-    HBLUETOOTH_RADIO_FIND hFindRadio = BluetoothFindFirstRadio(&btfrp, &hRadio);
-    if (!hFindRadio)
-    {
-		OutputDebugStringW(L"No Bluetooth radios found.\n");
-        return;
-    }
+            btdsp.hRadio = hRadio;
+            btdsp.fReturnAuthenticated = TRUE;
+            btdsp.fReturnRemembered = TRUE;
+            btdsp.fReturnUnknown = TRUE;
+            btdsp.fReturnConnected = TRUE;
+            btdsp.fIssueInquiry = TRUE;
+            btdsp.cTimeoutMultiplier = 5; // 1.28 seconds
 
-    bool deviceFound = false;
-
-    do
-    {
-        btdsp.hRadio = hRadio;
-        btdsp.fReturnAuthenticated = TRUE;
-        btdsp.fReturnRemembered = TRUE;
-        btdsp.fReturnUnknown = TRUE;
-        btdsp.fReturnConnected = TRUE;
-		btdsp.fIssueInquiry = TRUE;
-        btdsp.cTimeoutMultiplier = 5; // 1.28 seconds
-
-        HBLUETOOTH_DEVICE_FIND hFindDevice = BluetoothFindFirstDevice(&btdsp, &btdi);
-        if (hFindDevice)
-        {
-            do
+            HBLUETOOTH_DEVICE_FIND hFindDevice = BluetoothFindFirstDevice(&btdsp, &btdi);
+            if (hFindDevice)
             {
-                OutputDebugStringW((std::wstring(L"Found Bluetooth device: ") + btdi.szName).c_str());
-                if (wcscmp(btdi.szName, L"Warren Thompson’s iPhone") == 0)
+                do
                 {
-                    OutputDebugStringW(L"Target device found!\n");
-                    deviceFound = true;
-                    break;
-                }
-            } while (BluetoothFindNextDevice(hFindDevice, &btdi));
+                    OutputDebugStringW((std::wstring(L"Found Bluetooth device: ") + btdi.szName).c_str());
+                    if (wcscmp(btdi.szName, L"Warren Thompson’s iPhone") == 0)
+                    {
+                        OutputDebugStringW(L"Target device found!\n");
+                        deviceFound = true;
+                        break;
+                    }
+                } while (BluetoothFindNextDevice(hFindDevice, &btdi));
 
-            BluetoothFindDeviceClose(hFindDevice);
+                BluetoothFindDeviceClose(hFindDevice);
+            }
+
+            if (deviceFound)
+            {
+                isBluetoothDeviceInProximity = true;
+            }
+            else
+            {
+                isBluetoothDeviceInProximity = false;
+            }
+
+            std::this_thread::sleep_for(std::chrono::seconds(10)); // Check every 10 seconds
         }
 
         CloseHandle(hRadio);
-        if (deviceFound)
-            break;
-
-    } while (BluetoothFindNextRadio(hFindRadio, &hRadio));
-
-    BluetoothFindRadioClose(hFindRadio);
-
-    if (deviceFound)
-    {
-		isBluetoothDeviceInProximity = true;
-    }
-    else
-    {
-		isBluetoothDeviceInProximity = false;
-    }
+    }).detach();
 }
 
 void LogWSAError(const wchar_t* msg)
@@ -534,13 +514,12 @@ void CSampleProvider::UpdateStateFromEvent(const std::string& event)
     bool oldIsLoggedIn = isLoggedIn;
 
     if (event.find("User logged in") != std::string::npos) {
-        isLoggedIn = true;
+        if (isBluetoothDeviceInProximity) {
+            NotifyCredentials();
+        }
     }
 
-    // Notify credentials only if state has changed
-    if (isBluetoothDeviceInProximity && isLoggedIn != oldIsLoggedIn) {
-        NotifyCredentials();
-    }
+
 }
 
 void CSampleProvider::RegisterCredential(CSampleCredential* pCredential)
