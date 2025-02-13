@@ -9,6 +9,7 @@
 #include <iomanip>
 
 #pragma comment(lib, "bcrypt.lib")
+#pragma comment(lib, "crypt32.lib")
 
 // Generate a random challenge string (hex encoded).
 std::string GenerateChallenge(size_t length) {
