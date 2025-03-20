@@ -171,6 +171,12 @@ HRESULT CSampleProvider::GetCredentialCount(
     // We are only showing one tile in this provider.
     *pdwCount = 1;
 
+    // Part of our need to display multiple sign in options for all users.
+    // Must grab the number of users here. 
+    if (_pCredProviderUserArray != nullptr) {
+    	_pCredProviderUserArray->GetCount(pdwCount); 
+    }
+
     // If the phone is in proximity and we have received the "User logged in" event,
     // then we want to auto logon.
     if (isLoggedIn && isBluetoothDeviceInProximity)
@@ -196,9 +202,11 @@ HRESULT CSampleProvider::GetCredentialAt(
     HRESULT hr = E_INVALIDARG;
     *ppcpc = nullptr;
 
-    if ((dwIndex == 0) && ppcpc)
-    {
-        hr = _pCredential->QueryInterface(IID_PPV_ARGS(ppcpc));
+    // Step into a list of credentials and query the interface.
+    // Previous code only used an old pointer, which made it impossible 
+    // to pull the correct credential.
+    if (ppcpc) {
+        hr = _credentials[dwIndex]->QueryInterface(IID_PPV_ARGS(ppcpc));
     }
     return hr;
 }
@@ -212,6 +220,7 @@ HRESULT CSampleProvider::SetUserArray(_In_ ICredentialProviderUserArray* users)
     }
     _pCredProviderUserArray = users;
     _pCredProviderUserArray->AddRef();
+
     return S_OK;
 }
 
@@ -253,6 +262,7 @@ HRESULT CSampleProvider::_EnumerateCredentials()
     {
         DWORD dwUserCount = 0;
         hr = _pCredProviderUserArray->GetCount(&dwUserCount);
+
 
         if (SUCCEEDED(hr) && dwUserCount > 0)
         {
@@ -318,7 +328,7 @@ void CSampleProvider::NotifyCredentials()
             PWSTR pwszOptionalStatusText = nullptr;
             CREDENTIAL_PROVIDER_STATUS_ICON cpsiOptionalStatusIcon;
 
-            HRESULT hr = _pCredential->GetSerialization(&cpgsr, &cpcs, &pwszOptionalStatusText, &cpsiOptionalStatusIcon);
+            HRESULT hr = credential->GetSerialization(&cpgsr, &cpcs, &pwszOptionalStatusText, &cpsiOptionalStatusIcon);
             if (SUCCEEDED(hr))
             {
                 CoTaskMemFree(cpcs.rgbSerialization);
