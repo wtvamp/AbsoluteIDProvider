@@ -18,8 +18,66 @@
 #include "guid.h"
 #include <iostream>
 #include <bluetoothapis.h> // Windows Bluetooth API
+#include <windows.h>
+#include <wincrypt.h>
+#include <vector>
+#include <string>
 
+#pragma comment(lib, "Crypt32.lib")
 #pragma comment(lib, "Bthprops.lib") // Link Bluetooth library
+
+// Helper function to retrieve and decrypt the password via DPAPI
+static HRESULT GetDecryptedPassword(const wchar_t* username, std::wstring& decryptedPassword)
+{
+    // Construct the filepath, e.g., C:\ProgramData\AbsoluteID\warrenjfthompson@outlook.com.cred
+    std::wstring filePath = L"C:\\ProgramData\\AbsoluteID\\";
+    filePath += username;
+    filePath += L".cred";
+
+    HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ,
+        nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (hFile == INVALID_HANDLE_VALUE)
+        return HRESULT_FROM_WIN32(GetLastError());
+
+    DWORD fileSize = GetFileSize(hFile, nullptr);
+    if (fileSize == INVALID_FILE_SIZE)
+    {
+        CloseHandle(hFile);
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+
+    std::vector<BYTE> encryptedData(fileSize);
+    DWORD bytesRead = 0;
+    if (!ReadFile(hFile, encryptedData.data(), fileSize, &bytesRead, nullptr))
+    {
+        CloseHandle(hFile);
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+    CloseHandle(hFile);
+
+    DATA_BLOB inBlob;
+    inBlob.cbData = bytesRead;
+    inBlob.pbData = encryptedData.data();
+    DATA_BLOB outBlob;
+    if (!CryptUnprotectData(&inBlob, nullptr, nullptr, nullptr, nullptr, 0, &outBlob))
+    {
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+
+    // outBlob.pbData now holds the decrypted password in UTF-8.
+    int requiredSize = MultiByteToWideChar(CP_UTF8, 0, (LPCCH)outBlob.pbData, outBlob.cbData, nullptr, 0);
+    if (requiredSize == 0)
+    {
+        LocalFree(outBlob.pbData);
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+    std::wstring password(requiredSize, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, (LPCCH)outBlob.pbData, outBlob.cbData, &password[0], requiredSize);
+    LocalFree(outBlob.pbData);
+    decryptedPassword = password;
+    return S_OK;
+}
+
 
 // Constructor for CSampleCredential class
 CSampleCredential::CSampleCredential():
@@ -410,10 +468,22 @@ HRESULT CSampleCredential::GetSerialization(
                 pszDomain ? pszDomain : L"(null)", pszUsername ? pszUsername : L"(null)");
             OutputDebugString(debugMsg);
 
+            // Retrieve the decrypted password via DPAPI
+            std::wstring decryptedPassword;
+            hr = GetDecryptedPassword(_pszQualifiedUserName, decryptedPassword);
+            if (FAILED(hr))
+            {
+                OutputDebugString(L"GetSerialization: Failed to retrieve DPAPI password.\n");
+                CoTaskMemFree(pszDomain);
+                CoTaskMemFree(pszUsername);
+                return hr;
+            }
+
             // Initialize the KerbInteractiveUnlockLogon structure.
             // Note: Replace the hardcoded password with secure retrieval.
             KERB_INTERACTIVE_UNLOCK_LOGON kiul;
-            hr = KerbInteractiveUnlockLogonInit(pszDomain, pszUsername, L"Awe$ome42", _cpus, &kiul);
+            PWSTR mutablePassword = const_cast<wchar_t*>(decryptedPassword.c_str());
+            hr = KerbInteractiveUnlockLogonInit(pszDomain, pszUsername, mutablePassword, _cpus, &kiul);
             if (SUCCEEDED(hr))
             {
                 OutputDebugString(L"GetSerialization: KerbInteractiveUnlockLogonInit succeeded.\n");
@@ -457,9 +527,19 @@ HRESULT CSampleCredential::GetSerialization(
     {
         OutputDebugString(L"GetSerialization: Using CredPackAuthenticationBuffer branch.\n");
 
+        // Retrieve the decrypted password via DPAPI
+        std::wstring decryptedPassword;
+        hr = GetDecryptedPassword(_pszQualifiedUserName, decryptedPassword);
+        if (FAILED(hr))
+        {
+            OutputDebugString(L"GetSerialization: Failed to retrieve DPAPI password (non-local branch).\n");
+            return hr;
+        }
+        PWSTR mutablePassword = const_cast<wchar_t*>(decryptedPassword.c_str());
+
         DWORD dwAuthFlags = CRED_PACK_PROTECTED_CREDENTIALS | CRED_PACK_ID_PROVIDER_CREDENTIALS;
         // First, get the required buffer size.
-        if (!CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, L"Awe$ome42",
+        if (!CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, mutablePassword,
             nullptr, &pcpcs->cbSerialization) &&
             (GetLastError() == ERROR_INSUFFICIENT_BUFFER))
         {
@@ -467,7 +547,7 @@ HRESULT CSampleCredential::GetSerialization(
             if (pcpcs->rgbSerialization != nullptr)
             {
                 hr = S_OK;
-                if (CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, L"Awe$ome42",
+                if (CredPackAuthenticationBuffer(dwAuthFlags, _pszQualifiedUserName, mutablePassword,
                     pcpcs->rgbSerialization, &pcpcs->cbSerialization))
                 {
                     OutputDebugString(L"GetSerialization: CredPackAuthenticationBuffer succeeded.\n");
