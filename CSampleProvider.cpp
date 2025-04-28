@@ -64,6 +64,12 @@ CSampleProvider::~CSampleProvider()
     DllRelease();
 }
 
+void CSampleProvider::SetSelectedCredential(DWORD index)
+{
+    _selectedIndex = index;
+    _hasSelected = true;
+}
+
 // SetUsageScenario tells us which scenario (logon or unlock) we are in.
 HRESULT CSampleProvider::SetUsageScenario(
     CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
@@ -181,7 +187,7 @@ HRESULT CSampleProvider::GetCredentialCount(
     // then we want to auto logon.
     if (isLoggedIn && isBluetoothDeviceInProximity)
     {
-        *pdwDefault = 0;               // Use our only tile as the default.
+        *pdwDefault = _selectedIndex;               // Use our only tile as the default.
         *pbAutoLogonWithDefault = TRUE;  // Trigger auto logon.
     }
     else
@@ -278,6 +284,7 @@ HRESULT CSampleProvider::_EnumerateCredentials()
                         hr = pCredential->Initialize(_cpus, s_rgCredProvFieldDescriptors, s_rgFieldStatePairs, pCredUser);
                         if (SUCCEEDED(hr))
                         {
+                            pCredential->SetProviderData(this, i);
                             RegisterCredential(pCredential);
                             _pCredential = pCredential;
                         }

@@ -193,6 +193,12 @@ HRESULT CSampleCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
     return hr;
 }
 
+void CSampleCredential::SetProviderData(CSampleProvider* provider, DWORD index)
+{
+    _pProvider = provider;
+    _credentialIndex = index;
+}
+
 // LogonUI calls this in order to give us a callback in case we need to notify it of anything.
 HRESULT CSampleCredential::Advise(_In_ ICredentialProviderCredentialEvents *pcpce)
 {
@@ -229,7 +235,9 @@ HRESULT CSampleCredential::UnAdvise()
 // selected, you would do it here.
 HRESULT CSampleCredential::SetSelected(_Out_ BOOL *pbAutoLogon)
 {
-    *pbAutoLogon = FALSE;
+    *pbAutoLogon = FALSE;                   // never auto-login immediately
+    if (_pProvider)                         // but remember the click
+        _pProvider->SetSelectedCredential(_credentialIndex);
     return S_OK;
 }
 

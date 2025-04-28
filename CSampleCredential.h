@@ -37,6 +37,7 @@
 #include "common.h" // Includes common definitions
 #include "dll.h" // Includes DLL definitions
 #include "resource.h" // Includes resource definitions
+class CSampleProvider;
 
 // CSampleCredential class definition
 class CSampleCredential : public ICredentialProviderCredential2, ICredentialProviderCredentialWithFieldOptions
@@ -116,6 +117,7 @@ public:
                        _In_ ICredentialProviderUser *pcpUser); // Initializes the credential
     void OnProviderStateChange(bool loggedIn); // Handles provider state changes
     CSampleCredential(); // Constructor
+    void SetProviderData(CSampleProvider* provider, DWORD index);
 
 private:
     virtual ~CSampleCredential(); // Destructor
@@ -128,4 +130,6 @@ private:
     PWSTR                                   _pszQualifiedUserName; // The user name that's used to pack the authentication buffer
     ICredentialProviderCredentialEvents2*   _pCredProvCredentialEvents; // Used to update fields
     bool                                    _fIsLocalUser; // If the cred prov is associating with a local user tile
+    CSampleProvider* _pProvider = nullptr;
+    DWORD            _credentialIndex = 0;
 };
