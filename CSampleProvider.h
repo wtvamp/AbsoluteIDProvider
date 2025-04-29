@@ -70,6 +70,7 @@ class CSampleProvider : public ICredentialProvider,
 
     // Register credentials for event notifications
     void RegisterCredential(CSampleCredential* pCredential);
+    void SetSelectedCredential(DWORD index);
 
   protected:
     CSampleProvider();
@@ -98,5 +99,7 @@ private:
     // Add the events pointer to allow notifications to LogonUI.
     ICredentialProviderEvents* _pCredProviderEvents = nullptr;
     UINT_PTR _upAdviseContext = 0;
+    DWORD _selectedIndex = 0;    // index of the tile the user clicked
+    bool  _hasSelected = false;
 
 };
