@@ -26,56 +26,82 @@
 #pragma comment(lib, "Crypt32.lib")
 #pragma comment(lib, "Bthprops.lib") // Link Bluetooth library
 
-// Helper function to retrieve and decrypt the password via DPAPI
-static HRESULT GetDecryptedPassword(const wchar_t* username, std::wstring& decryptedPassword)
-{
-    // Construct the filepath, e.g., C:\ProgramData\AbsoluteID\warrenjfthompson@outlook.com.cred
-    std::wstring filePath = L"C:\\ProgramData\\AbsoluteID\\";
-    filePath += username;
-    filePath += L".cred";
+// Helper function to retrieve and decrypt the password via DPAPI  
+static HRESULT GetDecryptedPassword(const wchar_t* username, std::wstring& decryptedPassword)  
+{  
+   OutputDebugString(L"GetDecryptedPassword: Entered.\n");  
 
-    HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ,
-        nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (hFile == INVALID_HANDLE_VALUE)
-        return HRESULT_FROM_WIN32(GetLastError());
+   // Construct the filepath, e.g., C:\ProgramData\AbsoluteID\warrenjfthompson@outlook.com.cred  
+   std::wstring filePath = L"C:\\ProgramData\\AbsoluteID\\";  
+   filePath += username;  
+   filePath += L".cred";  
 
-    DWORD fileSize = GetFileSize(hFile, nullptr);
-    if (fileSize == INVALID_FILE_SIZE)
-    {
-        CloseHandle(hFile);
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
+   OutputDebugString((L"GetDecryptedPassword: File path constructed: " + filePath + L"\n").c_str());  
 
-    std::vector<BYTE> encryptedData(fileSize);
-    DWORD bytesRead = 0;
-    if (!ReadFile(hFile, encryptedData.data(), fileSize, &bytesRead, nullptr))
-    {
-        CloseHandle(hFile);
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-    CloseHandle(hFile);
+   HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ,  
+       nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);  
+   if (hFile == INVALID_HANDLE_VALUE)  
+   {  
+       OutputDebugString(L"GetDecryptedPassword: Failed to open file.\n");  
+       return HRESULT_FROM_WIN32(GetLastError());  
+   }  
 
-    DATA_BLOB inBlob;
-    inBlob.cbData = bytesRead;
-    inBlob.pbData = encryptedData.data();
-    DATA_BLOB outBlob;
-    if (!CryptUnprotectData(&inBlob, nullptr, nullptr, nullptr, nullptr, 0, &outBlob))
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
+   DWORD fileSize = GetFileSize(hFile, nullptr);  
+   if (fileSize == INVALID_FILE_SIZE)  
+   {  
+       OutputDebugString(L"GetDecryptedPassword: Failed to get file size.\n");  
+       CloseHandle(hFile);  
+       return HRESULT_FROM_WIN32(GetLastError());  
+   }  
 
-    // outBlob.pbData now holds the decrypted password in UTF-8.
-    int requiredSize = MultiByteToWideChar(CP_UTF8, 0, (LPCCH)outBlob.pbData, outBlob.cbData, nullptr, 0);
-    if (requiredSize == 0)
-    {
-        LocalFree(outBlob.pbData);
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-    std::wstring password(requiredSize, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, (LPCCH)outBlob.pbData, outBlob.cbData, &password[0], requiredSize);
-    LocalFree(outBlob.pbData);
-    decryptedPassword = password;
-    return S_OK;
+   OutputDebugString((L"GetDecryptedPassword: File size: " + std::to_wstring(fileSize) + L"\n").c_str());  
+
+   std::vector<BYTE> encryptedData(fileSize);  
+   DWORD bytesRead = 0;  
+   if (!ReadFile(hFile, encryptedData.data(), fileSize, &bytesRead, nullptr))  
+   {  
+       OutputDebugString(L"GetDecryptedPassword: Failed to read file.\n");  
+       CloseHandle(hFile);  
+       return HRESULT_FROM_WIN32(GetLastError());  
+   }  
+   CloseHandle(hFile);  
+
+   OutputDebugString(L"GetDecryptedPassword: File read successfully.\n");  
+
+   DATA_BLOB inBlob;  
+   inBlob.cbData = bytesRead;  
+   inBlob.pbData = encryptedData.data();  
+   DATA_BLOB outBlob;  
+   if (!CryptUnprotectData(&inBlob, nullptr, nullptr, nullptr, nullptr, 0, &outBlob))  
+   {  
+       OutputDebugString(L"GetDecryptedPassword: CryptUnprotectData failed.\n");  
+       return HRESULT_FROM_WIN32(GetLastError());  
+   }  
+
+   OutputDebugString(L"GetDecryptedPassword: Data decrypted successfully.\n");  
+
+   // outBlob.pbData now holds the decrypted password in UTF-8.  
+   int requiredSize = MultiByteToWideChar(CP_UTF8, 0, (LPCCH)outBlob.pbData, outBlob.cbData, nullptr, 0);  
+   if (requiredSize == 0)  
+   {  
+       OutputDebugString(L"GetDecryptedPassword: MultiByteToWideChar failed to calculate size.\n");  
+       LocalFree(outBlob.pbData);  
+       return HRESULT_FROM_WIN32(GetLastError());  
+   }  
+
+   std::wstring password(requiredSize, L'\0');  
+   if (MultiByteToWideChar(CP_UTF8, 0, (LPCCH)outBlob.pbData, outBlob.cbData, &password[0], requiredSize) == 0)  
+   {  
+       OutputDebugString(L"GetDecryptedPassword: MultiByteToWideChar failed to convert data.\n");  
+       LocalFree(outBlob.pbData);  
+       return HRESULT_FROM_WIN32(GetLastError());  
+   }  
+
+   LocalFree(outBlob.pbData);  
+   decryptedPassword = password;  
+
+   OutputDebugString(L"GetDecryptedPassword: Successfully retrieved and decrypted password.\n");  
+   return S_OK;  
 }
 
 
