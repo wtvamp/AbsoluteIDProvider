@@ -22,7 +22,11 @@
 #include "CSampleProvider.h"
 #include "CSampleCredential.h"
 #include "guid.h"
+#include <wincrypt.h>
+#include <fstream>
+#include <sstream>
 
+#pragma comment(lib, "Crypt32.lib")
 #pragma comment(lib, "Bthprops.lib") // Link Bluetooth library
 #pragma comment(lib, "Ws2_32.lib")     // Link Winsock library
 
@@ -62,6 +66,67 @@ CSampleProvider::~CSampleProvider()
         _pCredProviderEvents = nullptr;
     }
     DllRelease();
+}
+
+
+std::wstring DecryptDPAPIFile(const std::wstring& filePath)
+{
+    // Open the file
+    HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (hFile == INVALID_HANDLE_VALUE)
+    {
+        std::wcerr << L"Failed to open file: " << filePath << L". Error: " << GetLastError() << std::endl;
+        return L"";
+    }
+
+    // Get the file size
+    DWORD fileSize = GetFileSize(hFile, nullptr);
+    if (fileSize == INVALID_FILE_SIZE)
+    {
+        std::wcerr << L"Failed to get file size. Error: " << GetLastError() << std::endl;
+        CloseHandle(hFile);
+        return L"";
+    }
+
+    // Read the file content
+    std::vector<BYTE> encryptedData(fileSize);
+    DWORD bytesRead = 0;
+    if (!ReadFile(hFile, encryptedData.data(), fileSize, &bytesRead, nullptr))
+    {
+        std::wcerr << L"Failed to read file. Error: " << GetLastError() << std::endl;
+        CloseHandle(hFile);
+        return L"";
+    }
+    CloseHandle(hFile);
+
+    // Decrypt the data using DPAPI
+    DATA_BLOB inBlob = { bytesRead, encryptedData.data() };
+    DATA_BLOB outBlob = { 0, nullptr };
+    if (!CryptUnprotectData(&inBlob, nullptr, nullptr, nullptr, nullptr, 0, &outBlob))
+    {
+        std::wcerr << L"Failed to decrypt data. Error: " << GetLastError() << std::endl;
+        return L"";
+    }
+
+    // Convert the decrypted data to a wide string
+    std::wstring decryptedData(reinterpret_cast<wchar_t*>(outBlob.pbData), outBlob.cbData / sizeof(wchar_t));
+    LocalFree(outBlob.pbData);
+
+    return decryptedData;
+}
+
+std::wstring ExtractLastField(const std::wstring& payload)
+{
+    std::wistringstream stream(payload);
+    std::wstring field;
+    std::wstring lastField;
+
+    while (std::getline(stream, field, L';'))
+    {
+        lastField = field;
+    }
+
+    return lastField;
 }
 
 void CSampleProvider::SetSelectedCredential(DWORD index)
@@ -371,6 +436,21 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
     isBluetoothDeviceInProximity = false;
     OutputDebugStringW(L"Initializing Bluetooth Proximity Check...\n");
 
+    // Decrypt the registration file and extract the target device name
+    std::wstring decryptedPayload = DecryptDPAPIFile(L"C:\\ProgramData\\AbsoluteID\\registration.dat");
+    if (decryptedPayload.empty())
+    {
+        OutputDebugStringW(L"Failed to decrypt registration file.\n");
+        return;
+    }
+
+    std::wstring targetDeviceName = ExtractLastField(decryptedPayload);
+    if (targetDeviceName.empty())
+    {
+        OutputDebugStringW(L"Failed to extract target device name from payload.\n");
+        return;
+    }
+
     // Initialize Bluetooth APIs
     HANDLE hRadio = NULL;
     BLUETOOTH_FIND_RADIO_PARAMS btfrp = { sizeof(BLUETOOTH_FIND_RADIO_PARAMS) };
@@ -388,7 +468,7 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
     }
 
     // Start a thread to periodically check Bluetooth proximity.
-    std::thread([this, hRadio]() {
+    std::thread([this, hRadio, targetDeviceName]() {
         OutputDebugStringW(L"Checking Bluetooth proximity...\n");
         while (!isBluetoothDeviceInProximity)
         {
@@ -411,23 +491,11 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
             {
                 do
                 {
-
                     std::wstring debugMsg = L"Found Bluetooth device: ";
                     debugMsg += btdi.szName;
 
-
-                    // Retrieve the device ID (Bluetooth address)
-                    wchar_t deviceId[18]; // Bluetooth address is 12 hex digits + 5 colons + null terminator
-                    swprintf_s(deviceId, L"%02X:%02X:%02X:%02X:%02X:%02X",
-                        btdi.Address.rgBytes[5], btdi.Address.rgBytes[4], btdi.Address.rgBytes[3],
-                        btdi.Address.rgBytes[2], btdi.Address.rgBytes[1], btdi.Address.rgBytes[0]);
-
-                    debugMsg += L" (Device ID: ";
-                    debugMsg += deviceId;
-                    debugMsg += L")";
-
                     OutputDebugStringW(debugMsg.c_str());
-                    if (wcscmp(deviceId, L"BluetoothLE#BluetoothLEf8:ac:65:1b:52:73-47:24:dc:a5:8d:0e") == 0)
+                    if (wcscmp(btdi.szName, targetDeviceName.c_str()) == 0)
                     {
                         OutputDebugStringW(L"Target device found!\n");
                         deviceFound = true;
@@ -445,6 +513,7 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
         CloseHandle(hRadio);
         }).detach();
 }
+
 
 void LogWSAError(const wchar_t* msg)
 {
