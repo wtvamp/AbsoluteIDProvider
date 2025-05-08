@@ -491,13 +491,13 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
             {
                 do
                 {
-                    std::wstring debugMsg = L"Found Bluetooth device: ";
+                    std::wstring debugMsg = L"Found Bluetooth device: \n";
                     debugMsg += btdi.szName;
 
                     OutputDebugStringW(debugMsg.c_str());
                     if (wcscmp(btdi.szName, targetDeviceName.c_str()) == 0)
                     {
-                        OutputDebugStringW(L"Target device found!\n");
+                        OutputDebugStringW(L"\n\nTarget device found!\n\n");
                         deviceFound = true;
                         break;
                     }
