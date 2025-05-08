@@ -112,6 +112,8 @@ std::wstring DecryptDPAPIFile(const std::wstring& filePath)
     std::wstring decryptedData(reinterpret_cast<wchar_t*>(outBlob.pbData), outBlob.cbData / sizeof(wchar_t));
     LocalFree(outBlob.pbData);
 
+    std::wcout << L"Decrypted Payload: " << decryptedData << std::endl;
+
     return decryptedData;
 }
 
