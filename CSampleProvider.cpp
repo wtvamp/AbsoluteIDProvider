@@ -411,10 +411,23 @@ void CSampleProvider::InitializeBluetoothProximityCheck()
             {
                 do
                 {
+
                     std::wstring debugMsg = L"Found Bluetooth device: ";
                     debugMsg += btdi.szName;
+
+
+                    // Retrieve the device ID (Bluetooth address)
+                    wchar_t deviceId[18]; // Bluetooth address is 12 hex digits + 5 colons + null terminator
+                    swprintf_s(deviceId, L"%02X:%02X:%02X:%02X:%02X:%02X",
+                        btdi.Address.rgBytes[5], btdi.Address.rgBytes[4], btdi.Address.rgBytes[3],
+                        btdi.Address.rgBytes[2], btdi.Address.rgBytes[1], btdi.Address.rgBytes[0]);
+
+                    debugMsg += L" (Device ID: ";
+                    debugMsg += deviceId;
+                    debugMsg += L")";
+
                     OutputDebugStringW(debugMsg.c_str());
-                    if (wcscmp(btdi.szName, L"Warren Thompson’s iPhone") == 0)
+                    if (wcscmp(deviceId, L"BluetoothLE#BluetoothLEf8:ac:65:1b:52:73-47:24:dc:a5:8d:0e") == 0)
                     {
                         OutputDebugStringW(L"Target device found!\n");
                         deviceFound = true;
