@@ -68,7 +68,6 @@ CSampleProvider::~CSampleProvider()
     DllRelease();
 }
 
-
 std::wstring DecryptDPAPIFile(const std::wstring& filePath)
 {
     // Open the file
@@ -108,8 +107,23 @@ std::wstring DecryptDPAPIFile(const std::wstring& filePath)
         return L"";
     }
 
-    // Convert the decrypted data to a wide string
-    std::wstring decryptedData(reinterpret_cast<wchar_t*>(outBlob.pbData), outBlob.cbData / sizeof(wchar_t));
+    // Convert the decrypted data from UTF-8 to a wide string
+    int requiredSize = MultiByteToWideChar(CP_UTF8, 0, (LPCCH)outBlob.pbData, outBlob.cbData, nullptr, 0);
+    if (requiredSize == 0)
+    {
+        std::wcerr << L"Failed to calculate required size for UTF-8 to wide string conversion. Error: " << GetLastError() << std::endl;
+        LocalFree(outBlob.pbData);
+        return L"";
+    }
+
+    std::wstring decryptedData(requiredSize, L'\0');
+    if (MultiByteToWideChar(CP_UTF8, 0, (LPCCH)outBlob.pbData, outBlob.cbData, &decryptedData[0], requiredSize) == 0)
+    {
+        std::wcerr << L"Failed to convert UTF-8 to wide string. Error: " << GetLastError() << std::endl;
+        LocalFree(outBlob.pbData);
+        return L"";
+    }
+
     LocalFree(outBlob.pbData);
 
     OutputDebugStringW((L"Decrypted Payload: " + decryptedData + L"\n").c_str());
