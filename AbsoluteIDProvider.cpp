@@ -19,7 +19,7 @@
 #include <string>
 #include <chrono>
 #include <initguid.h>
-#include "CSampleProvider.h"
+#include "AbsoluteIDProvider.h"
 #include "AbsoluteIDCredential.h"
 #include "guid.h"
 
@@ -27,11 +27,11 @@
 #pragma comment(lib, "Ws2_32.lib")     // Link Winsock library
 
 //
-// CSampleProvider Implementation
+// AbsoluteIDProvider Implementation
 //
 
-// Constructor for CSampleProvider.
-CSampleProvider::CSampleProvider() :
+// Constructor for AbsoluteIDProvider.
+AbsoluteIDProvider::AbsoluteIDProvider() :
     _cRef(1),
     _pCredential(nullptr),
     _pCredProviderUserArray(nullptr),
@@ -43,8 +43,8 @@ CSampleProvider::CSampleProvider() :
     DllAddRef();
 }
 
-// Destructor for CSampleProvider.
-CSampleProvider::~CSampleProvider()
+// Destructor for AbsoluteIDProvider.
+AbsoluteIDProvider::~AbsoluteIDProvider()
 {
     if (_pCredential != nullptr)
     {
@@ -64,14 +64,14 @@ CSampleProvider::~CSampleProvider()
     DllRelease();
 }
 
-void CSampleProvider::SetSelectedCredential(DWORD index)
+void AbsoluteIDProvider::SetSelectedCredential(DWORD index)
 {
     _selectedIndex = index;
     _hasSelected = true;
 }
 
 // SetUsageScenario tells us which scenario (logon or unlock) we are in.
-HRESULT CSampleProvider::SetUsageScenario(
+HRESULT AbsoluteIDProvider::SetUsageScenario(
     CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
     DWORD /*dwFlags*/)
 {
@@ -100,14 +100,14 @@ HRESULT CSampleProvider::SetUsageScenario(
 }
 
 // SetSerialization is not implemented in this sample.
-HRESULT CSampleProvider::SetSerialization(
+HRESULT AbsoluteIDProvider::SetSerialization(
     _In_ CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION const* /*pcpcs*/)
 {
     return E_NOTIMPL;
 }
 
 // Advise: LogonUI calls this to provide a callback for when our credentials change.
-HRESULT CSampleProvider::Advise(
+HRESULT AbsoluteIDProvider::Advise(
     _In_ ICredentialProviderEvents *pcpe,
     _In_ UINT_PTR upAdviseContext)
 {
@@ -122,7 +122,7 @@ HRESULT CSampleProvider::Advise(
 
 
 // UnAdvise: LogonUI calls this to indicate that the ICredentialProviderEvents callback is no longer valid.
-HRESULT CSampleProvider::UnAdvise()
+HRESULT AbsoluteIDProvider::UnAdvise()
 {
     if (_pCredProviderEvents)
     {
@@ -133,7 +133,7 @@ HRESULT CSampleProvider::UnAdvise()
 }
 
 // GetFieldDescriptorCount: Returns the number of fields in our tile.
-HRESULT CSampleProvider::GetFieldDescriptorCount(
+HRESULT AbsoluteIDProvider::GetFieldDescriptorCount(
     _Out_ DWORD* pdwCount)
 {
     *pdwCount = SFI_NUM_FIELDS;
@@ -141,7 +141,7 @@ HRESULT CSampleProvider::GetFieldDescriptorCount(
 }
 
 // GetFieldDescriptorAt: Returns the field descriptor for a specific field.
-HRESULT CSampleProvider::GetFieldDescriptorAt(
+HRESULT AbsoluteIDProvider::GetFieldDescriptorAt(
     DWORD dwIndex,
     _Outptr_result_nullonfailure_ CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR** ppcpfd)
 {
@@ -161,7 +161,7 @@ HRESULT CSampleProvider::GetFieldDescriptorAt(
 }
 
 // GetCredentialCount: Returns the number of tiles to show.
-HRESULT CSampleProvider::GetCredentialCount(
+HRESULT AbsoluteIDProvider::GetCredentialCount(
     _Out_ DWORD* pdwCount,
     _Out_ DWORD* pdwDefault,
     _Out_ BOOL* pbAutoLogonWithDefault)
@@ -201,7 +201,7 @@ HRESULT CSampleProvider::GetCredentialCount(
 
 
 // GetCredentialAt: Returns the credential at the specified index.
-HRESULT CSampleProvider::GetCredentialAt(
+HRESULT AbsoluteIDProvider::GetCredentialAt(
     DWORD dwIndex,
     _Outptr_result_nullonfailure_ ICredentialProviderCredential** ppcpc)
 {
@@ -218,7 +218,7 @@ HRESULT CSampleProvider::GetCredentialAt(
 }
 
 // SetUserArray: Called by LogonUI to pass in the array of users.
-HRESULT CSampleProvider::SetUserArray(_In_ ICredentialProviderUserArray* users)
+HRESULT AbsoluteIDProvider::SetUserArray(_In_ ICredentialProviderUserArray* users)
 {
     if (_pCredProviderUserArray)
     {
@@ -231,7 +231,7 @@ HRESULT CSampleProvider::SetUserArray(_In_ ICredentialProviderUserArray* users)
 }
 
 // _CreateEnumeratedCredentials: Creates the credential tiles.
-void CSampleProvider::_CreateEnumeratedCredentials()
+void AbsoluteIDProvider::_CreateEnumeratedCredentials()
 {
     InitializeBluetoothProximityCheck();
     InitializeReactNativeAppCommunication();
@@ -250,7 +250,7 @@ void CSampleProvider::_CreateEnumeratedCredentials()
 }
 
 // _ReleaseEnumeratedCredentials: Releases any enumerated credentials.
-void CSampleProvider::_ReleaseEnumeratedCredentials()
+void AbsoluteIDProvider::_ReleaseEnumeratedCredentials()
 {
     if (_pCredential != nullptr)
     {
@@ -260,7 +260,7 @@ void CSampleProvider::_ReleaseEnumeratedCredentials()
 }
 
 // _EnumerateCredentials: Enumerates users and creates a credential for each.
-HRESULT CSampleProvider::_EnumerateCredentials()
+HRESULT AbsoluteIDProvider::_EnumerateCredentials()
 {
     HRESULT hr = E_UNEXPECTED;
 
@@ -312,13 +312,13 @@ HRESULT CSampleProvider::_EnumerateCredentials()
 }
 
 // RegisterCredential: Stores a credential pointer for later notifications.
-void CSampleProvider::RegisterCredential(AbsoluteIDCredential* pCredential)
+void AbsoluteIDProvider::RegisterCredential(AbsoluteIDCredential* pCredential)
 {
     _credentials.push_back(pCredential);
 }
 
 // NotifyCredentials: Notifies all stored credentials of a state change.
-void CSampleProvider::NotifyCredentials()
+void AbsoluteIDProvider::NotifyCredentials()
 {
     for (auto* credential : _credentials)
     {
@@ -349,7 +349,7 @@ void CSampleProvider::NotifyCredentials()
 }
 
 // UpdateStateFromEvent: Called when an HTTP event is received from the React Native app.
-void CSampleProvider::UpdateStateFromEvent(const std::string& event)
+void AbsoluteIDProvider::UpdateStateFromEvent(const std::string& event)
 {
     if (event.find("User logged in") != std::string::npos)
     {
@@ -366,7 +366,7 @@ void CSampleProvider::UpdateStateFromEvent(const std::string& event)
 // Bluetooth Proximity Check and React Native App Communication
 // ---------------------------------------------------
 
-void CSampleProvider::InitializeBluetoothProximityCheck()
+void AbsoluteIDProvider::InitializeBluetoothProximityCheck()
 {
     isBluetoothDeviceInProximity = false;
     OutputDebugStringW(L"Initializing Bluetooth Proximity Check...\n");
@@ -443,7 +443,7 @@ void LogWSAError(const wchar_t* msg)
     LocalFree(s);
 }
 
-void CSampleProvider::InitializeReactNativeAppCommunication()
+void AbsoluteIDProvider::InitializeReactNativeAppCommunication()
 {
     OutputDebugStringW(L"Starting HTTP server to listen for React Native app events...\n");
 
@@ -549,7 +549,7 @@ void CSampleProvider::InitializeReactNativeAppCommunication()
 HRESULT CSample_CreateInstance(_In_ REFIID riid, _Outptr_ void** ppv)
 {
     HRESULT hr;
-    CSampleProvider* pProvider = new(std::nothrow) CSampleProvider();
+    AbsoluteIDProvider* pProvider = new(std::nothrow) AbsoluteIDProvider();
     if (pProvider)
     {
         hr = pProvider->QueryInterface(riid, ppv);

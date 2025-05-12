@@ -17,8 +17,8 @@
 #include <string>
 
 
-class CSampleProvider : public ICredentialProvider,
-                        public ICredentialProviderSetUserArray
+class AbsoluteIDProvider : public ICredentialProvider,
+                           public ICredentialProviderSetUserArray
 {
   public:
     // IUnknown
@@ -41,8 +41,8 @@ class CSampleProvider : public ICredentialProvider,
     {
         static const QITAB qit[] =
         {
-            QITABENT(CSampleProvider, ICredentialProvider), // IID_ICredentialProvider
-            QITABENT(CSampleProvider, ICredentialProviderSetUserArray), // IID_ICredentialProviderSetUserArray
+            QITABENT(AbsoluteIDProvider, ICredentialProvider), // IID_ICredentialProvider
+            QITABENT(AbsoluteIDProvider, ICredentialProviderSetUserArray), // IID_ICredentialProviderSetUserArray
             {0},
         };
         return QISearch(this, qit, riid, ppv);
@@ -73,8 +73,8 @@ class CSampleProvider : public ICredentialProvider,
     void SetSelectedCredential(DWORD index);
 
   protected:
-    CSampleProvider();
-    __override ~CSampleProvider();
+      AbsoluteIDProvider();
+    __override ~AbsoluteIDProvider();
 
 private:
     void _ReleaseEnumeratedCredentials();

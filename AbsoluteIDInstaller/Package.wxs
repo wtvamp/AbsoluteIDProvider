@@ -1,0 +1,10 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Id="Delmock.AbsoluteIDInstaller" Name="AbsoluteID" Manufacturer="Delmock Technologies, Inc." Version="1.0.0.0" Compressed="yes" InstallerVersion="500">
+    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+    <Feature Id="Main">
+      <ComponentGroupRef Id="ExampleComponents" />
+      <ComponentGroupRef Id="SystemComponents" />
+    </Feature>
+    <MediaTemplate EmbedCab="yes"/>
+  </Package>
+</Wix>

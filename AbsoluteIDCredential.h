@@ -37,7 +37,7 @@
 #include "common.h" // Includes common definitions
 #include "dll.h" // Includes DLL definitions
 #include "resource.h" // Includes resource definitions
-class CSampleProvider;
+class AbsoluteIDProvider;
 
 // AbsoluteIDCredential class definition
 class AbsoluteIDCredential : public ICredentialProviderCredential2, ICredentialProviderCredentialWithFieldOptions
@@ -117,7 +117,7 @@ public:
                        _In_ ICredentialProviderUser *pcpUser); // Initializes the credential
     void OnProviderStateChange(bool loggedIn); // Handles provider state changes
     AbsoluteIDCredential(); // Constructor
-    void SetProviderData(CSampleProvider* provider, DWORD index);
+    void SetProviderData(AbsoluteIDProvider* provider, DWORD index);
 
 private:
     virtual ~AbsoluteIDCredential(); // Destructor
@@ -130,6 +130,6 @@ private:
     PWSTR                                   _pszQualifiedUserName; // The user name that's used to pack the authentication buffer
     ICredentialProviderCredentialEvents2*   _pCredProvCredentialEvents; // Used to update fields
     bool                                    _fIsLocalUser; // If the cred prov is associating with a local user tile
-    CSampleProvider* _pProvider = nullptr;
+    AbsoluteIDProvider* _pProvider = nullptr;
     DWORD            _credentialIndex = 0;
 };

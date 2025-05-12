@@ -14,7 +14,7 @@
 #endif
 #include <unknwn.h>
 #include "AbsoluteIDCredential.h"
-#include "CSampleProvider.h"
+#include "AbsoluteIDProvider.h"
 #include "guid.h"
 #include <iostream>
 #include <bluetoothapis.h> // Windows Bluetooth API
@@ -277,7 +277,7 @@ HRESULT AbsoluteIDCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus
     return hr;
 }
 
-void AbsoluteIDCredential::SetProviderData(CSampleProvider* provider, DWORD index)
+void AbsoluteIDCredential::SetProviderData(AbsoluteIDProvider* provider, DWORD index)
 {
     _pProvider = provider;
     _credentialIndex = index;

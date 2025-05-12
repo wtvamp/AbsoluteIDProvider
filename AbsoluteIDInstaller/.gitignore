@@ -1,0 +1,31 @@
+# Build output folders
+/bin/
+/obj/
+
+# WiX intermediate and output files
+*.wixobj
+*.wixpdb
+*.wixout
+*.wixlib
+*.wixmst
+
+# Installer outputs
+*.msi
+*.cab
+*.msm
+
+# Visual Studio files
+.vs/
+*.suo
+*.user
+*.VC.db
+*.VC.opendb
+
+# NuGet packages and caches
+packages/
+*.nupkg
+.nuget/
+
+# Logs and temporary files
+*.log
+*.tmp
