@@ -13,7 +13,7 @@
 #define WIN32_NO_STATUS
 #endif
 #include <unknwn.h>
-#include "CSampleCredential.h"
+#include "AbsoluteIDCredential.h"
 #include "CSampleProvider.h"
 #include "guid.h"
 #include <iostream>
@@ -106,7 +106,7 @@ static HRESULT GetDecryptedPassword(const wchar_t* username, std::wstring& decry
 
 
 // Constructor for CSampleCredential class
-CSampleCredential::CSampleCredential():
+AbsoluteIDCredential::AbsoluteIDCredential():
    // Initialize reference count to 1
    _cRef(1),
    // Initialize credential provider events pointer to nullptr
@@ -129,7 +129,7 @@ CSampleCredential::CSampleCredential():
    ZeroMemory(_rgFieldStrings, sizeof(_rgFieldStrings));
 }
 
-CSampleCredential::~CSampleCredential()
+AbsoluteIDCredential::~AbsoluteIDCredential()
 {
     // Loop through each field string and free the allocated memory
     for (int i = 0; i < ARRAYSIZE(_rgFieldStrings); i++)
@@ -150,7 +150,7 @@ CSampleCredential::~CSampleCredential()
 
 // Initializes one credential with the field information passed in.
 // Set the value of the SFI_LARGE_TEXT field to pwzUsername.
-HRESULT CSampleCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
+HRESULT AbsoluteIDCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
                                       _In_ CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR const *rgcpfd,
                                       _In_ FIELD_STATE_PAIR const *rgfsp,
                                       _In_ ICredentialProviderUser *pcpUser)
@@ -277,14 +277,14 @@ HRESULT CSampleCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
     return hr;
 }
 
-void CSampleCredential::SetProviderData(CSampleProvider* provider, DWORD index)
+void AbsoluteIDCredential::SetProviderData(CSampleProvider* provider, DWORD index)
 {
     _pProvider = provider;
     _credentialIndex = index;
 }
 
 // LogonUI calls this in order to give us a callback in case we need to notify it of anything.
-HRESULT CSampleCredential::Advise(_In_ ICredentialProviderCredentialEvents *pcpce)
+HRESULT AbsoluteIDCredential::Advise(_In_ ICredentialProviderCredentialEvents *pcpce)
 {
     // Check if the credential provider events pointer is not null
     if (_pCredProvCredentialEvents != nullptr)
@@ -297,7 +297,7 @@ HRESULT CSampleCredential::Advise(_In_ ICredentialProviderCredentialEvents *pcpc
 }
 
 // LogonUI calls this to tell us to release the callback.
-HRESULT CSampleCredential::UnAdvise()
+HRESULT AbsoluteIDCredential::UnAdvise()
 {
     // Check if the credential provider events pointer is not null
     if (_pCredProvCredentialEvents)
@@ -317,7 +317,7 @@ HRESULT CSampleCredential::UnAdvise()
 // field definitions. But if you want to do something
 // more complicated, like change the contents of a field when the tile is
 // selected, you would do it here.
-HRESULT CSampleCredential::SetSelected(_Out_ BOOL *pbAutoLogon)
+HRESULT AbsoluteIDCredential::SetSelected(_Out_ BOOL *pbAutoLogon)
 {
     *pbAutoLogon = FALSE;                   // never auto-login immediately
     if (_pProvider)                         // but remember the click
@@ -328,14 +328,14 @@ HRESULT CSampleCredential::SetSelected(_Out_ BOOL *pbAutoLogon)
 // Similarly to SetSelected, LogonUI calls this when your tile was selected
 // and now no longer is. The most common thing to do here (which we do below)
 // is to clear out the password field.
-HRESULT CSampleCredential::SetDeselected()
+HRESULT AbsoluteIDCredential::SetDeselected()
 {
     return S_OK;
 }
 
 // Get info for a particular field of a tile. Called by logonUI to get information
 // to display the tile.
-HRESULT CSampleCredential::GetFieldState(DWORD dwFieldID,
+HRESULT AbsoluteIDCredential::GetFieldState(DWORD dwFieldID,
                                          _Out_ CREDENTIAL_PROVIDER_FIELD_STATE *pcpfs,
                                          _Out_ CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE *pcpfis)
 {
@@ -362,7 +362,7 @@ HRESULT CSampleCredential::GetFieldState(DWORD dwFieldID,
 }
 
 // Sets ppwsz to the string value of the field at the index dwFieldID
-HRESULT CSampleCredential::GetStringValue(DWORD dwFieldID, _Outptr_result_nullonfailure_ PWSTR *ppwsz)
+HRESULT AbsoluteIDCredential::GetStringValue(DWORD dwFieldID, _Outptr_result_nullonfailure_ PWSTR *ppwsz)
 {
     // Declare a variable to hold the result of the function.
     HRESULT hr;
@@ -387,7 +387,7 @@ HRESULT CSampleCredential::GetStringValue(DWORD dwFieldID, _Outptr_result_nullon
 }
 
 // Get the image to show in the user tile
-HRESULT CSampleCredential::GetBitmapValue(DWORD dwFieldID, _Outptr_result_nullonfailure_ HBITMAP *phbmp)
+HRESULT AbsoluteIDCredential::GetBitmapValue(DWORD dwFieldID, _Outptr_result_nullonfailure_ HBITMAP *phbmp)
 {
     HRESULT hr;
     *phbmp = nullptr;
@@ -413,50 +413,50 @@ HRESULT CSampleCredential::GetBitmapValue(DWORD dwFieldID, _Outptr_result_nullon
     return hr;
 }
 
-HRESULT CSampleCredential::GetCheckboxValue(DWORD dwFieldID, BOOL* pbChecked, PWSTR* ppwszLabel)
+HRESULT AbsoluteIDCredential::GetCheckboxValue(DWORD dwFieldID, BOOL* pbChecked, PWSTR* ppwszLabel)
 {
     return S_OK;
 }
 
-HRESULT CSampleCredential::GetComboBoxValueCount(DWORD dwFieldID, DWORD* pcItems, DWORD* pdwSelectedItem)
+HRESULT AbsoluteIDCredential::GetComboBoxValueCount(DWORD dwFieldID, DWORD* pcItems, DWORD* pdwSelectedItem)
 {
     return S_OK;
 }
 
-HRESULT CSampleCredential::GetComboBoxValueAt(DWORD dwFieldID, DWORD dwItem, PWSTR* ppwszItem)
+HRESULT AbsoluteIDCredential::GetComboBoxValueAt(DWORD dwFieldID, DWORD dwItem, PWSTR* ppwszItem)
 {
     return S_OK;
 }
 
-HRESULT CSampleCredential::GetSubmitButtonValue(DWORD dwFieldID, DWORD* pdwAdjacentTo)
+HRESULT AbsoluteIDCredential::GetSubmitButtonValue(DWORD dwFieldID, DWORD* pdwAdjacentTo)
 {
     return S_OK;
 }
 
 // Sets the value of a field which can accept a string as a value.
 // This is called on each keystroke when a user types into an edit field
-HRESULT CSampleCredential::SetStringValue(DWORD dwFieldID, _In_ PCWSTR pwz)
+HRESULT AbsoluteIDCredential::SetStringValue(DWORD dwFieldID, _In_ PCWSTR pwz)
 {
     return S_OK;
 }
 
 // Sets whether the specified checkbox is checked or not.
-HRESULT CSampleCredential::SetCheckboxValue(DWORD dwFieldID, BOOL bChecked)
+HRESULT AbsoluteIDCredential::SetCheckboxValue(DWORD dwFieldID, BOOL bChecked)
 {
     return S_OK;
 }
 
-HRESULT CSampleCredential::SetComboBoxSelectedValue(DWORD dwFieldID, DWORD dwSelectedItem)
+HRESULT AbsoluteIDCredential::SetComboBoxSelectedValue(DWORD dwFieldID, DWORD dwSelectedItem)
 {
     return S_OK;
 }
 
-HRESULT CSampleCredential::CommandLinkClicked(DWORD dwFieldID)
+HRESULT AbsoluteIDCredential::CommandLinkClicked(DWORD dwFieldID)
 {
     return S_OK;
 }
 
-HRESULT CSampleCredential::GetSerialization(
+HRESULT AbsoluteIDCredential::GetSerialization(
     _Out_ CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE* pcpgsr,
     _Out_ CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION* pcpcs,
     _Outptr_result_maybenull_ PWSTR* ppwszOptionalStatusText,
@@ -635,7 +635,7 @@ static const REPORT_RESULT_STATUS_INFO s_rgLogonStatusInfo[] =
 // and the icon displayed in the case of a logon failure.  For example, we have chosen to
 // customize the error shown in the case of bad username/password and in the case of the account
 // being disabled.
-HRESULT CSampleCredential::ReportResult(NTSTATUS ntsStatus,
+HRESULT AbsoluteIDCredential::ReportResult(NTSTATUS ntsStatus,
                                         NTSTATUS ntsSubstatus,
                                         _Outptr_result_maybenull_ PWSTR *ppwszOptionalStatusText,
                                         _Out_ CREDENTIAL_PROVIDER_STATUS_ICON *pcpsiOptionalStatusIcon)
@@ -669,7 +669,7 @@ HRESULT CSampleCredential::ReportResult(NTSTATUS ntsStatus,
 }
 
 // Gets the SID of the user corresponding to the credential.
-HRESULT CSampleCredential::GetUserSid(_Outptr_result_nullonfailure_ PWSTR *ppszSid)
+HRESULT AbsoluteIDCredential::GetUserSid(_Outptr_result_nullonfailure_ PWSTR *ppszSid)
 {
     *ppszSid = nullptr;
     HRESULT hr = E_UNEXPECTED;
@@ -684,7 +684,7 @@ HRESULT CSampleCredential::GetUserSid(_Outptr_result_nullonfailure_ PWSTR *ppszS
 }
 
 // GetFieldOptions to enable the password reveal button and touch keyboard auto-invoke in the password field.
-HRESULT CSampleCredential::GetFieldOptions(DWORD dwFieldID,
+HRESULT AbsoluteIDCredential::GetFieldOptions(DWORD dwFieldID,
                                            _Out_ CREDENTIAL_PROVIDER_CREDENTIAL_FIELD_OPTIONS *pcpcfo)
 {
     *pcpcfo = CPCFO_NONE;
@@ -697,7 +697,7 @@ HRESULT CSampleCredential::GetFieldOptions(DWORD dwFieldID,
     return S_OK;
 }
 
-void CSampleCredential::OnProviderStateChange(bool loggedIn)
+void AbsoluteIDCredential::OnProviderStateChange(bool loggedIn)
 {
     bool oldLoggedIn = false;
     if (oldLoggedIn != loggedIn) {

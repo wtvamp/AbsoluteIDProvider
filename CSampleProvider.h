@@ -12,7 +12,7 @@
 #include <strsafe.h>
 #include <new>
 
-#include "CSampleCredential.h"
+#include "AbsoluteIDCredential.h"
 #include <vector>
 #include <string>
 
@@ -69,7 +69,7 @@ class CSampleProvider : public ICredentialProvider,
     friend HRESULT CSample_CreateInstance(_In_ REFIID riid, _Outptr_ void** ppv);
 
     // Register credentials for event notifications
-    void RegisterCredential(CSampleCredential* pCredential);
+    void RegisterCredential(AbsoluteIDCredential* pCredential);
     void SetSelectedCredential(DWORD index);
 
   protected:
@@ -87,7 +87,7 @@ private:
     void CheckBluetoothProximity(); // Check for nearby Bluetooth devices
 
     long                                    _cRef;            // Used for reference counting.
-    CSampleCredential                       *_pCredential;    // SampleV2Credential
+    AbsoluteIDCredential*_pCredential;    // SampleV2Credential
     bool                                    _fRecreateEnumeratedCredentials;
     CREDENTIAL_PROVIDER_USAGE_SCENARIO      _cpus;
     ICredentialProviderUserArray            *_pCredProviderUserArray;
@@ -95,7 +95,7 @@ private:
     bool isLoggedIn = false;        // Tracks whether the user is logged in
 	bool isBluetoothDeviceInProximity = false; // Tracks whether a Bluetooth device is in proximity
 
-    std::vector<CSampleCredential*> _credentials; // List of registered credentials
+    std::vector<AbsoluteIDCredential*> _credentials; // List of registered credentials
     // Add the events pointer to allow notifications to LogonUI.
     ICredentialProviderEvents* _pCredProviderEvents = nullptr;
     UINT_PTR _upAdviseContext = 0;

@@ -20,7 +20,7 @@
 #include <chrono>
 #include <initguid.h>
 #include "CSampleProvider.h"
-#include "CSampleCredential.h"
+#include "AbsoluteIDCredential.h"
 #include "guid.h"
 
 #pragma comment(lib, "Bthprops.lib") // Link Bluetooth library
@@ -278,7 +278,7 @@ HRESULT CSampleProvider::_EnumerateCredentials()
                 hr = _pCredProviderUserArray->GetAt(i, &pCredUser);
                 if (SUCCEEDED(hr) && pCredUser != nullptr)
                 {
-                    CSampleCredential* pCredential = new (std::nothrow) CSampleCredential();
+                    AbsoluteIDCredential* pCredential = new (std::nothrow) AbsoluteIDCredential();
                     if (pCredential != nullptr)
                     {
                         hr = pCredential->Initialize(_cpus, s_rgCredProvFieldDescriptors, s_rgFieldStatePairs, pCredUser);
@@ -312,7 +312,7 @@ HRESULT CSampleProvider::_EnumerateCredentials()
 }
 
 // RegisterCredential: Stores a credential pointer for later notifications.
-void CSampleProvider::RegisterCredential(CSampleCredential* pCredential)
+void CSampleProvider::RegisterCredential(AbsoluteIDCredential* pCredential)
 {
     _credentials.push_back(pCredential);
 }
