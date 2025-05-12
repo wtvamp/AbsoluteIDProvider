@@ -3,6 +3,7 @@
     <None Include=".gitignore" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\AbsoluteIDCredentialSetup\AbsoluteIDCredentialSetup\AbsoluteIDCredentialSetup.csproj" />
     <ProjectReference Include="..\SampleV2CredentialProvider.vcxproj" />
   </ItemGroup>
 </Project>
