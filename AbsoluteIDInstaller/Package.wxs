@@ -1,7 +1,7 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" 
      xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx" 
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
-  <Package Id="Delmock.AbsoluteIDInstaller" Name="AbsoluteID" Manufacturer="Delmock Technologies, Inc." Version="1.0.0.0" Compressed="yes" InstallerVersion="500">
+  <Package Id="Delmock.AbsoluteIDInstaller" Name="AbsoluteID Credential Provider" Manufacturer="Delmock Technologies, Inc." Version="1.0.0.0" Compressed="yes" InstallerVersion="500">
     <!-- tell the UI which folder to let the user pick -->
     <!--<Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>-->
 
