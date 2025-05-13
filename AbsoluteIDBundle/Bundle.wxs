@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Wix
+  xmlns="http://wixtoolset.org/schemas/v4/wxs"
+  xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal"
+  xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+  xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
+
+  <Bundle
+    Name="AbsoluteID Console Installer"
+    Version="1.0.0.0"
+    Manufacturer="Delmock Technologies, Inc."
+    Id="AbsoluteIDBundle"
+    UpgradeCode="F2A3B8D1-4C71-4F2B-9C5E-7A1D34B6E8F7">
+
+    <!-- this sets NET8FOUND if the desktop runtime is already on the machine -->
+    <netfx:DotNetCoreSearch
+      RuntimeType="desktop"
+      Platform="x64"
+      MajorVersion="8"
+      Variable="NET8FOUND"/>
+
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+        Theme="hyperlinkLicense"
+        LicenseUrl="https://your.license/url.rtf"
+        LogoFile="icon.png" />
+    </BootstrapperApplication>
+    
+    <Chain>
+      <!-- A) .NET 8 Desktop Runtime EXE -->
+      <ExePackage
+        Id="DotNet8Runtime"
+        SourceFile="./Runtime/windowsdesktop-runtime-8.0.15-win-x64.exe"
+        DisplayName="Microsoft .NET 8.0 Hosting Runtime"
+        DetectCondition="NET8FOUND"
+        Cache="keep"
+        Compressed="yes"
+        Permanent="yes"
+        PerMachine="yes"
+        InstallArguments="–quiet –norestart"
+        RepairArguments="-repair –quiet"
+        Vital="yes"
+        />
+      
+      <!-- B) Your MSI -->
+      <MsiPackage
+        Id="AbsoluteIDInstaller"
+        SourceFile="AbsoluteIDInstaller.msi"
+        />
+    </Chain>
+  </Bundle>
+</Wix>

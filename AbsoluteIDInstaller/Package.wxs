@@ -1,4 +1,4 @@
-﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
   <Package Id="Delmock.AbsoluteIDInstaller" Name="AbsoluteID" Manufacturer="Delmock Technologies, Inc." Version="1.0.0.0" Compressed="yes" InstallerVersion="500">
     <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
     <Feature Id="Main">
@@ -6,5 +6,16 @@
       <ComponentGroupRef Id="SystemComponents" />
     </Feature>
     <MediaTemplate EmbedCab="yes"/>
+    <netfx:DotNetCompatibilityCheck
+      Property="DOTNETRUNTIMECHECK"
+      RollForward="major"
+      RuntimeType="desktop"
+      Platform="x64"
+      Version="8.0.0"
+    />
+    <Launch
+      Message="This application requires .NET 8.0 Desktop Runtime."
+      Condition="Installed OR DOTNETRUNTIMECHECK"
+    />
   </Package>
 </Wix>

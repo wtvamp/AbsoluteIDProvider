@@ -3,6 +3,9 @@
     <None Include=".gitignore" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="WixToolset.Netfx.wixext :" Version="6.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\AbsoluteIDCredentialSetup\AbsoluteIDCredentialSetup\AbsoluteIDCredentialSetup.csproj" />
     <ProjectReference Include="..\SampleV2CredentialProvider.vcxproj" />
   </ItemGroup>
