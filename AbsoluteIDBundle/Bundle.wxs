@@ -6,7 +6,7 @@
   xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
 
   <Bundle
-    Name="AbsoluteID Console Installer"
+    Name="AbsoluteID Bundle Installer"
     Version="1.0.0.0"
     Manufacturer="Delmock Technologies, Inc."
     Id="AbsoluteIDBundle"
