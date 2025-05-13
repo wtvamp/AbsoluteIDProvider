@@ -703,7 +703,7 @@ void AbsoluteIDCredential::OnProviderStateChange(bool loggedIn)
     if (oldLoggedIn != loggedIn) {
         if (loggedIn)
         {
-			oldLoggedIn = true;
+            oldLoggedIn = true;
             // Update the credential state to reflect the logged-in status
             if (_pCredProvCredentialEvents)
             {
@@ -712,7 +712,7 @@ void AbsoluteIDCredential::OnProviderStateChange(bool loggedIn)
         }
         else
         {
-			oldLoggedIn = false;
+            oldLoggedIn = false;
             // Update the credential state to reflect the logged-out status
             if (_pCredProvCredentialEvents)
             {
