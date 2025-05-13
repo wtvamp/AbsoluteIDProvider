@@ -46,6 +46,8 @@
       <MsiPackage
         Id="AbsoluteIDInstaller"
         SourceFile="AbsoluteIDInstaller.msi"
+        bal:DisplayInternalUICondition="1"
+        Visible="yes"
         />
       <!--<ExePackage
         Id="RunCredentialSetup"

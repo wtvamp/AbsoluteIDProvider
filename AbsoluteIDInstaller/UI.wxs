@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix
+  xmlns="http://wixtoolset.org/schemas/v4/wxs"
+  xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Fragment>
+    <Property Id="CRED_PASSWORD" Secure="yes" />
+  </Fragment>
+  <Fragment>
+    <UI Id="CustomPasswordUI">
+      <!-- Password entry dialog -->
+      <Dialog Id="CredentialDialog" Width="370" Height="270" Title="Enter Credentials">
+        <Control Id="PasswordLabel" Type="Text" X="20" Y="50" Width="330" Height="15" Text="Please enter your password:" />
+        <Control Id="PasswordEdit" Type="Edit" X="20" Y="70" Width="330" Height="18" Property="CRED_PASSWORD" Password="yes" />
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Next">
+          <Publish Event="EndDialog" Value="Return"></Publish>
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg"></Publish>
+        </Control>
+      </Dialog>
+
+      <!-- Link the password dialog into the installer UI sequence -->
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="CredentialDialog"></Publish>
+    </UI>
+  </Fragment>
+
+</Wix>

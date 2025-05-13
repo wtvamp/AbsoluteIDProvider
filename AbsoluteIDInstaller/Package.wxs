@@ -1,8 +1,14 @@
-﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" 
+     xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx" 
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package Id="Delmock.AbsoluteIDInstaller" Name="AbsoluteID" Manufacturer="Delmock Technologies, Inc." Version="1.0.0.0" Compressed="yes" InstallerVersion="500">
-    <!-- ensure the USERNAME property is available --><!--
-    <PropertyRef Id="USERNAME"/>-->
+    <!-- tell the UI which folder to let the user pick -->
+    <!--<Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>-->
 
+    <!-- Reference the standard UI first -->
+    <ui:WixUI Id="WixUI_InstallDir" />
+    <UIRef Id="CustomPasswordUI" />
+    
     <!-- pull in your immediate CA -->
     <CustomActionRef Id="SetRunCredentialCA"/>
 
