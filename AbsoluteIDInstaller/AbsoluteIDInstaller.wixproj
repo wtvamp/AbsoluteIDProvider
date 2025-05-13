@@ -1,0 +1,13 @@
+﻿<Project Sdk="WixToolset.Sdk/6.0.0">
+  <ItemGroup>
+    <None Include=".gitignore" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Netfx.wixext" Version="6.0.0" />
+    <PackageReference Include="WixToolset.UI.wixext" Version="6.0.0" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\AbsoluteIDCredentialSetup\AbsoluteIDCredentialSetup\AbsoluteIDCredentialSetup.csproj" />
+    <ProjectReference Include="..\SampleV2CredentialProvider.vcxproj" />
+  </ItemGroup>
+</Project>

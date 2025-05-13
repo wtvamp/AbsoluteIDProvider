@@ -37,10 +37,10 @@
 #include "common.h" // Includes common definitions
 #include "dll.h" // Includes DLL definitions
 #include "resource.h" // Includes resource definitions
-class CSampleProvider;
+class AbsoluteIDProvider;
 
-// CSampleCredential class definition
-class CSampleCredential : public ICredentialProviderCredential2, ICredentialProviderCredentialWithFieldOptions
+// AbsoluteIDCredential class definition
+class AbsoluteIDCredential : public ICredentialProviderCredential2, ICredentialProviderCredentialWithFieldOptions
 {
 public:
     // IUnknown interface methods
@@ -63,9 +63,9 @@ public:
     {
         static const QITAB qit[] = // Array of interface ID and offset pairs
         {
-            QITABENT(CSampleCredential, ICredentialProviderCredential), // IID_ICredentialProviderCredential
-            QITABENT(CSampleCredential, ICredentialProviderCredential2), // IID_ICredentialProviderCredential2
-            QITABENT(CSampleCredential, ICredentialProviderCredentialWithFieldOptions), //IID_ICredentialProviderCredentialWithFieldOptions
+            QITABENT(AbsoluteIDCredential, ICredentialProviderCredential), // IID_ICredentialProviderCredential
+            QITABENT(AbsoluteIDCredential, ICredentialProviderCredential2), // IID_ICredentialProviderCredential2
+            QITABENT(AbsoluteIDCredential, ICredentialProviderCredentialWithFieldOptions), //IID_ICredentialProviderCredentialWithFieldOptions
             {0}, // End of array
         };
         return QISearch(this, qit, riid, ppv); // Searches for the requested interface
@@ -116,11 +116,11 @@ public:
                        _In_ FIELD_STATE_PAIR const *rgfsp,
                        _In_ ICredentialProviderUser *pcpUser); // Initializes the credential
     void OnProviderStateChange(bool loggedIn); // Handles provider state changes
-    CSampleCredential(); // Constructor
-    void SetProviderData(CSampleProvider* provider, DWORD index);
+    AbsoluteIDCredential(); // Constructor
+    void SetProviderData(AbsoluteIDProvider* provider, DWORD index);
 
 private:
-    virtual ~CSampleCredential(); // Destructor
+    virtual ~AbsoluteIDCredential(); // Destructor
     long                                    _cRef; // Reference count
     CREDENTIAL_PROVIDER_USAGE_SCENARIO      _cpus; // The usage scenario for which we were enumerated
     CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR    _rgCredProvFieldDescriptors[SFI_NUM_FIELDS]; // An array holding the type and name of each field in the tile
@@ -130,6 +130,6 @@ private:
     PWSTR                                   _pszQualifiedUserName; // The user name that's used to pack the authentication buffer
     ICredentialProviderCredentialEvents2*   _pCredProvCredentialEvents; // Used to update fields
     bool                                    _fIsLocalUser; // If the cred prov is associating with a local user tile
-    CSampleProvider* _pProvider = nullptr;
+    AbsoluteIDProvider* _pProvider = nullptr;
     DWORD            _credentialIndex = 0;
 };

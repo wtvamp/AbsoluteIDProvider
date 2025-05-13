@@ -1,12 +1,12 @@
 Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{6f9619ff-8b86-d011-b42d-00cf4fc964ff}]
-@="SampleV2CredentialProvider"
+@="AbsoluteIDCredentialProvider"
 
 [HKEY_CLASSES_ROOT\CLSID\{6f9619ff-8b86-d011-b42d-00cf4fc964ff}]
-@="SampleV2CredentialProvider"
+@="AbsoluteIDCredentialProvider"
 
 [HKEY_CLASSES_ROOT\CLSID\{6f9619ff-8b86-d011-b42d-00cf4fc964ff}\InprocServer32]
-@="SampleV2CredentialProvider.dll"
+@="AbsoluteIDCredentialProvider.dll"
 "ThreadingModel"="Apartment"
 
