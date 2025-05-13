@@ -4,6 +4,7 @@
     <Feature Id="Main">
       <ComponentGroupRef Id="CredentialSetupComponents" />
       <ComponentGroupRef Id="SystemComponents" />
+      <ComponentGroupRef Id="RegistryComponents" />
     </Feature>
     <MediaTemplate EmbedCab="yes"/>
     <netfx:DotNetCompatibilityCheck

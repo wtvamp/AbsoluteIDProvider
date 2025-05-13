@@ -1,0 +1,23 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <ComponentGroup Id="RegistryComponents" Directory="System6432Folder">
+      <Component Id="RegistryEntries" Guid="6201f6ab-f8f3-44bd-a389-4dc586460031">
+        <!-- [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{6f9619ff-8b86-d011-b42d-00cf4fc964ff}] -->
+        <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{6f9619ff-8b86-d011-b42d-00cf4fc964ff}">
+          <RegistryValue Type="string" Value="AbsoluteIDCredentialProvider" KeyPath="yes" />
+        </RegistryKey>
+
+        <!-- [HKEY_CLASSES_ROOT\CLSID\{6f9619ff-8b86-d011-b42d-00cf4fc964ff}] -->
+        <RegistryKey Root="HKCR" Key="CLSID\{6f9619ff-8b86-d011-b42d-00cf4fc964ff}">
+          <RegistryValue Type="string" Value="AbsoluteIDCredentialProvider" />
+        </RegistryKey>
+
+        <!-- [HKEY_CLASSES_ROOT\CLSID\{6f9619ff-8b86-d011-b42d-00cf4fc964ff}\InprocServer32] -->
+        <RegistryKey Root="HKCR" Key="CLSID\{6f9619ff-8b86-d011-b42d-00cf4fc964ff}\InprocServer32">
+          <RegistryValue Type="string" Value="AbsoluteIDCredentialProvider.dll" />
+          <RegistryValue Type="string" Name="ThreadingModel" Value="Apartment" />
+        </RegistryKey>
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

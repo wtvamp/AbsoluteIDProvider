@@ -47,6 +47,20 @@
         Id="AbsoluteIDInstaller"
         SourceFile="AbsoluteIDInstaller.msi"
         />
+      <!--<ExePackage
+        Id="RunCredentialSetup"
+        SourceFile="AbsoluteIDCredentialSetup.exe"
+        InstallArguments="adduser [USERNAME]"
+        Permanent="yes"
+        Compressed="yes"
+        PerMachine="yes"
+        Vital="yes"
+        InstallCondition="NOT WixBundleInstalled">
+        <Payload SourceFile="AbsoluteIDCredentialSetup.runtimeconfig.json" />
+        <Payload SourceFile="AbsoluteIDCredentialSetup.deps.json" />
+        <Payload SourceFile="AbsoluteIDCredentialSetup.dll" />
+      </ExePackage>-->
+      
     </Chain>
   </Bundle>
 </Wix>
