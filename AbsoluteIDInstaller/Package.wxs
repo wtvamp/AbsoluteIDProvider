@@ -1,5 +1,14 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
   <Package Id="Delmock.AbsoluteIDInstaller" Name="AbsoluteID" Manufacturer="Delmock Technologies, Inc." Version="1.0.0.0" Compressed="yes" InstallerVersion="500">
+    <!-- ensure the USERNAME property is available --><!--
+    <PropertyRef Id="USERNAME"/>-->
+
+    <!-- pull in your immediate CA -->
+    <CustomActionRef Id="SetRunCredentialCA"/>
+
+    <!-- pull in your deferred CA -->
+    <CustomActionRef Id="RunAbsoluteIDCredentialSetup"/>
+
     <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
     <Feature Id="Main">
       <ComponentGroupRef Id="CredentialSetupComponents" />
