@@ -74,3 +74,4 @@ Desktop.ini
 .vs/
 *.code-workspace
 /AbsoluteIDBundle/obj
+/.vs/VSWorkspaceState.json
